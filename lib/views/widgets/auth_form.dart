@@ -25,10 +25,9 @@ class AuthForm extends StatelessWidget {
                 Text(
                   viewModel.isLogin ? 'Welcome Back,' : 'Create Account,',
                   style: TextStyle(
-                    fontSize:
-                        ResponsiveHelper.isSmallScreen(context)
-                            ? screenWidth * 0.07
-                            : ResponsiveHelper.isMediumScreen(context)
+                    fontSize: ResponsiveHelper.isSmallScreen(context)
+                        ? screenWidth * 0.07
+                        : ResponsiveHelper.isMediumScreen(context)
                             ? screenWidth * 0.06
                             : screenWidth * 0.05,
                     fontWeight: FontWeight.bold,
@@ -46,10 +45,9 @@ class AuthForm extends StatelessWidget {
                       ? 'Sign in to continue'
                       : 'Sign up to get started',
                   style: TextStyle(
-                    fontSize:
-                        ResponsiveHelper.isSmallScreen(context)
-                            ? screenWidth * 0.035
-                            : ResponsiveHelper.isMediumScreen(context)
+                    fontSize: ResponsiveHelper.isSmallScreen(context)
+                        ? screenWidth * 0.035
+                        : ResponsiveHelper.isMediumScreen(context)
                             ? screenWidth * 0.03
                             : screenWidth * 0.025,
                     color: Colors.grey[600],
@@ -58,8 +56,7 @@ class AuthForm extends StatelessWidget {
               ],
             ),
             SizedBox(
-              height:
-                  screenHeight *
+              height: screenHeight *
                   (ResponsiveHelper.isSmallScreen(context) ? 0.04 : 0.05),
             ),
 
@@ -73,8 +70,8 @@ class AuthForm extends StatelessWidget {
                 ResponsiveHelper.isSmallScreen(context)
                     ? screenWidth * 0.04
                     : ResponsiveHelper.isMediumScreen(context)
-                    ? screenWidth * 0.045
-                    : screenWidth * 0.05,
+                        ? screenWidth * 0.045
+                        : screenWidth * 0.05,
               ),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -99,8 +96,8 @@ class AuthForm extends StatelessWidget {
                       label: "Full Name",
                       fieldKey: 'name',
                       onTap: () => viewModel.onFieldTapped('name'),
-                      onChanged:
-                          (value) => viewModel.onFieldChanged('name', value),
+                      onChanged: (value) =>
+                          viewModel.onFieldChanged('name', value),
                     ),
                     SizedBox(height: screenHeight * 0.02),
 
@@ -131,7 +128,7 @@ class AuthForm extends StatelessWidget {
                     ),
                     SizedBox(height: screenHeight * 0.02),
 
-                    // Role Dropdown
+                    // Role Dropdown (Athlete / Coach only — Doctor removed)
                     Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(
@@ -144,10 +141,9 @@ class AuthForm extends StatelessWidget {
                         decoration: InputDecoration(
                           labelText: "Role",
                           labelStyle: TextStyle(
-                            fontSize:
-                                ResponsiveHelper.isSmallScreen(context)
-                                    ? screenWidth * 0.035
-                                    : ResponsiveHelper.isMediumScreen(context)
+                            fontSize: ResponsiveHelper.isSmallScreen(context)
+                                ? screenWidth * 0.035
+                                : ResponsiveHelper.isMediumScreen(context)
                                     ? screenWidth * 0.03
                                     : screenWidth * 0.025,
                           ),
@@ -157,63 +153,53 @@ class AuthForm extends StatelessWidget {
                             vertical: screenHeight * 0.01,
                           ),
                         ),
-                        items:
-                            viewModel.roles
-                                .map(
-                                  (role) => DropdownMenuItem(
-                                    value: role,
-                                    child: Text(role),
-                                  ),
-                                )
-                                .toList(),
+                        items: viewModel.roles
+                            .map(
+                              (role) => DropdownMenuItem(
+                                value: role,
+                                child: Text(role),
+                              ),
+                            )
+                            .toList(),
                         onChanged: (value) => viewModel.setSelectedRole(value!),
                       ),
                     ),
                     SizedBox(height: screenHeight * 0.02),
 
-                    // Sport/Specialization Field
-                    if (viewModel.selectedRole == 'Doctor')
-                      CustomInputField(
-                        controller: viewModel.sportController,
-                        label: "Specialization",
-                        fieldKey: 'sport',
-                        onTap: () => viewModel.onFieldTapped('sport'),
-                        onChanged:
-                            (value) => viewModel.onFieldChanged('sport', value),
-                      )
-                    else
-                      Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(
-                            ResponsiveHelper.isSmallScreen(context) ? 10 : 12,
-                          ),
-                          border: Border.all(color: Colors.grey[300]!),
-                        ),
-                        child: DropdownButtonFormField<String>(
-                          value:
-                              viewModel.sportController.text.isNotEmpty
-                                  ? viewModel.sportController.text
-                                  : null,
-                          decoration: InputDecoration(
-                            labelText: "Sport",
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: screenWidth * 0.04,
-                              vertical: screenHeight * 0.01,
+                    // Sport Field — disabled for now, will be re-enabled later.
+                    // Currently locked to 'Athletics'.
+                    Opacity(
+                      opacity: 0.5,
+                      child: IgnorePointer(
+                        ignoring: true, // set to false to re-enable
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(
+                              ResponsiveHelper.isSmallScreen(context) ? 10 : 12,
                             ),
+                            border: Border.all(color: Colors.grey[300]!),
                           ),
-                          items:
-                              viewModel.sports
-                                  .map(
-                                    (sport) => DropdownMenuItem(
-                                      value: sport,
-                                      child: Text(sport),
-                                    ),
-                                  )
-                                  .toList(),
-                          onChanged: (value) => viewModel.setSport(value ?? ''),
+                          child: DropdownButtonFormField<String>(
+                            value: 'Athletics',
+                            decoration: InputDecoration(
+                              labelText: "Sport (coming soon)",
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: screenWidth * 0.04,
+                                vertical: screenHeight * 0.01,
+                              ),
+                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'Athletics',
+                                child: Text('Athletics'),
+                              ),
+                            ],
+                            onChanged: null,
+                          ),
                         ),
                       ),
+                    ),
                     SizedBox(height: screenHeight * 0.02),
                   ],
 
@@ -223,8 +209,8 @@ class AuthForm extends StatelessWidget {
                     label: "Email",
                     fieldKey: 'email',
                     onTap: () => viewModel.onFieldTapped('email'),
-                    onChanged:
-                        (value) => viewModel.onFieldChanged('email', value),
+                    onChanged: (value) =>
+                        viewModel.onFieldChanged('email', value),
                   ),
                   SizedBox(height: screenHeight * 0.02),
 
@@ -235,8 +221,8 @@ class AuthForm extends StatelessWidget {
                     fieldKey: 'password',
                     suffixIcon: Icons.visibility_off,
                     onTap: () => viewModel.onFieldTapped('password'),
-                    onChanged:
-                        (value) => viewModel.onFieldChanged('password', value),
+                    onChanged: (value) =>
+                        viewModel.onFieldChanged('password', value),
                   ),
 
                   // Password Checklist for Signup
@@ -246,7 +232,6 @@ class AuthForm extends StatelessWidget {
                     const PasswordChecklist(),
                   ],
 
-                  // Forgot Password for Login
                   if (viewModel.isLogin) ...[
                     SizedBox(height: screenHeight * 0.005),
                   ],
@@ -256,10 +241,9 @@ class AuthForm extends StatelessWidget {
                   // Auth Button
                   Container(
                     width: double.infinity,
-                    height:
-                        ResponsiveHelper.isSmallScreen(context)
-                            ? screenHeight * 0.06
-                            : ResponsiveHelper.isMediumScreen(context)
+                    height: ResponsiveHelper.isSmallScreen(context)
+                        ? screenHeight * 0.06
+                        : ResponsiveHelper.isMediumScreen(context)
                             ? screenHeight * 0.065
                             : screenHeight * 0.07,
                     child: ElevatedButton(
@@ -276,48 +260,41 @@ class AuthForm extends StatelessWidget {
                         ),
                         elevation: 0,
                       ),
-                      child:
-                          viewModel.authState.status == AuthStatus.loading
-                              ? SizedBox(
-                                height:
-                                    ResponsiveHelper.isSmallScreen(context)
-                                        ? 18
-                                        : 20,
-                                width:
-                                    ResponsiveHelper.isSmallScreen(context)
-                                        ? 18
-                                        : 20,
-                                child: const CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white,
-                                  ),
-                                ),
-                              )
-                              : Text(
-                                viewModel.isLogin ? "Login" : "Signup",
-                                style: TextStyle(
-                                  fontSize:
-                                      ResponsiveHelper.isSmallScreen(context)
-                                          ? screenWidth * 0.04
-                                          : ResponsiveHelper.isMediumScreen(
-                                            context,
-                                          )
-                                          ? screenWidth * 0.035
-                                          : screenWidth * 0.03,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
+                      child: viewModel.authState.status == AuthStatus.loading
+                          ? SizedBox(
+                              height: ResponsiveHelper.isSmallScreen(context)
+                                  ? 18
+                                  : 20,
+                              width: ResponsiveHelper.isSmallScreen(context)
+                                  ? 18
+                                  : 20,
+                              child: const CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
                                 ),
                               ),
+                            )
+                          : Text(
+                              viewModel.isLogin ? "Login" : "Signup",
+                              style: TextStyle(
+                                fontSize:
+                                    ResponsiveHelper.isSmallScreen(context)
+                                        ? screenWidth * 0.04
+                                        : ResponsiveHelper.isMediumScreen(
+                                                context)
+                                            ? screenWidth * 0.035
+                                            : screenWidth * 0.03,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
                     ),
                   ),
 
                   SizedBox(
-                    height:
-                        screenHeight *
-                        (ResponsiveHelper.isSmallScreen(context)
-                            ? 0.025
-                            : 0.03),
+                    height: screenHeight *
+                        (ResponsiveHelper.isSmallScreen(context) ? 0.025 : 0.03),
                   ),
 
                   // Toggle Auth Mode
@@ -330,10 +307,9 @@ class AuthForm extends StatelessWidget {
                             : 'Already have an account? ',
                         style: TextStyle(
                           color: Colors.grey[600],
-                          fontSize:
-                              ResponsiveHelper.isSmallScreen(context)
-                                  ? screenWidth * 0.03
-                                  : ResponsiveHelper.isMediumScreen(context)
+                          fontSize: ResponsiveHelper.isSmallScreen(context)
+                              ? screenWidth * 0.03
+                              : ResponsiveHelper.isMediumScreen(context)
                                   ? screenWidth * 0.025
                                   : screenWidth * 0.02,
                         ),
@@ -344,10 +320,9 @@ class AuthForm extends StatelessWidget {
                           viewModel.isLogin ? 'Signup' : 'Login',
                           style: TextStyle(
                             color: const Color(0xFFFF6B6B),
-                            fontSize:
-                                ResponsiveHelper.isSmallScreen(context)
-                                    ? screenWidth * 0.03
-                                    : ResponsiveHelper.isMediumScreen(context)
+                            fontSize: ResponsiveHelper.isSmallScreen(context)
+                                ? screenWidth * 0.03
+                                : ResponsiveHelper.isMediumScreen(context)
                                     ? screenWidth * 0.025
                                     : screenWidth * 0.02,
                             fontWeight: FontWeight.w600,

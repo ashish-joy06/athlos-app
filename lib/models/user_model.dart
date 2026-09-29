@@ -6,6 +6,8 @@ class UserModel {
   final String email;
   final String role;
   final String sport;
+  final String gender;
+  final List<String> events;
   final DateTime dob;
   final bool emailVerified;
   final bool signupCompleted;
@@ -18,6 +20,8 @@ class UserModel {
     required this.email,
     required this.role,
     required this.sport,
+    required this.gender,
+    required this.events,
     required this.dob,
     required this.emailVerified,
     required this.signupCompleted,
@@ -33,6 +37,8 @@ class UserModel {
       email: data['email'] ?? '',
       role: data['role'] ?? 'Athlete',
       sport: data['sport'] ?? '',
+      gender: data['gender'] ?? '',
+      events: List<String>.from(data['events'] ?? const []),
       dob: DateTime.parse(data['dob'] ?? DateTime.now().toIso8601String()),
       emailVerified: data['emailVerified'] ?? false,
       signupCompleted: data['signupCompleted'] ?? false,
@@ -47,6 +53,8 @@ class UserModel {
       'email': email,
       'role': role,
       'sport': sport,
+      'gender': gender,
+      'events': events,
       'dob': dob.toIso8601String(),
       'emailVerified': emailVerified,
       'signupCompleted': signupCompleted,
@@ -61,6 +69,8 @@ class UserModel {
     String? email,
     String? role,
     String? sport,
+    String? gender,
+    List<String>? events,
     DateTime? dob,
     bool? emailVerified,
     bool? signupCompleted,
@@ -73,6 +83,8 @@ class UserModel {
       email: email ?? this.email,
       role: role ?? this.role,
       sport: sport ?? this.sport,
+      gender: gender ?? this.gender,
+      events: events ?? this.events,
       dob: dob ?? this.dob,
       emailVerified: emailVerified ?? this.emailVerified,
       signupCompleted: signupCompleted ?? this.signupCompleted,

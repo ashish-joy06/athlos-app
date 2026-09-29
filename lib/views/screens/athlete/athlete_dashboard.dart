@@ -30,26 +30,33 @@ class _DashboardScreenState extends State<DashboardScreen>
   late Animation<double> _fadeAnimation;
 
   List quotes = [];
-  late int number_;
+  int number_ = 0;
 
   Future<void> Fetchquotes() async {
-    final response = await http.get(
-      Uri.parse(
-        'https://raw.githubusercontent.com/Keshav8605/Athletix/refs/heads/motivation_quote_feature_add/assets/motivational_quotes.json',
-      ),
-    );
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      quotes = data;
-    } else {
-      throw Exception('Failed to load quotes');
+    try {
+      final response = await http.get(
+        Uri.parse(
+          'https://raw.githubusercontent.com/Keshav8605/Athletix/refs/heads/motivation_quote_feature_add/assets/motivational_quotes.json',
+        ),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (!mounted) return;
+        setState(() {
+          quotes = data;
+          if (quotes.isNotEmpty) {
+            number_ = Random().nextInt(quotes.length);
+          }
+        });
+      }
+    } catch (_) {
+      // Quote is optional; ignore network failures.
     }
   }
 
   @override
   void initState() {
     super.initState();
-    number_ = Random().nextInt(100) + 1;
     Fetchquotes();
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 800),
@@ -98,7 +105,6 @@ class _DashboardScreenState extends State<DashboardScreen>
       body: CustomScrollView(
         slivers: [
           _buildSliverAppBar(),
-
           SliverToBoxAdapter(
             child: FadeTransition(
               opacity: _fadeAnimation,
@@ -266,10 +272,9 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   Widget _buildWelcomeCard(String name, String sport, String dob) {
     final hour = DateTime.now().hour;
-    String greeting =
-        hour < 12
-            ? 'Good Morning'
-            : hour < 17
+    String greeting = hour < 12
+        ? 'Good Morning'
+        : hour < 17
             ? 'Good Afternoon'
             : 'Good Evening';
 
@@ -294,20 +299,23 @@ class _DashboardScreenState extends State<DashboardScreen>
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            Text("Todays Quote"),
-            SizedBox(height: 5),
+            const Text("Todays Quote"),
+            const SizedBox(height: 5),
             Text(
-              "${quotes[number_]['quote']}",
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+              (quotes.isEmpty || number_ >= quotes.length)
+                  ? "Stay motivated — loading today's quote…"
+                  : "${quotes[number_]['quote']}",
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
             ),
-            SizedBox(height: 30),
+            const SizedBox(height: 30),
             Lottie.asset(
               'assets/Athlete.json',
               width: 150,
               height: 150,
               fit: BoxFit.cover,
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Row(
               children: [
                 Container(

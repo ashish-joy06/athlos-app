@@ -6,6 +6,7 @@ import '../models/form_validation.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../services/validation_service.dart';
+import '../models/athletics_events.dart';
 
 class AuthViewModel extends ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -23,6 +24,8 @@ class AuthViewModel extends ChangeNotifier {
   bool _isLogin = true;
   DateTime? _dob;
   String _selectedRole = 'Athlete';
+  String? _selectedGender;
+  final List<String> _selectedEvents = [];
   Timer? _emailVerificationTimer;
   Timer? _debounce;
 
@@ -32,15 +35,13 @@ class AuthViewModel extends ChangeNotifier {
   bool get isLogin => _isLogin;
   DateTime? get dob => _dob;
   String get selectedRole => _selectedRole;
-  List<String> get roles => ['Athlete', 'Coach', 'Doctor'];
-  List<String> get sports => [
-    'Football',
-    'Basketball',
-    'Cricket',
-    'Tennis',
-    'Athletics',
-    'Swimming',
-  ];
+  String? get selectedGender => _selectedGender;
+  List<String> get selectedEvents => List.unmodifiable(_selectedEvents);
+  List<String> get roles => ['Athlete', 'Coach'];
+  List<String> get sports => ['Athletics'];
+  List<String> get allEvents => AthleticsEvents.all;
+  List<String> get genders => AthleticsEvents.genders;
+  int get maxEvents => AthleticsEvents.maxSelection;
 
   @override
   void dispose() {
@@ -91,6 +92,25 @@ class AuthViewModel extends ChangeNotifier {
     _validateField('sport', sport);
   }
 
+  void setGender(String? gender) {
+    _selectedGender = gender;
+    _markFieldAsTapped('gender');
+    _validateField('gender', gender);
+    notifyListeners();
+  }
+
+  void toggleEvent(String event) {
+    if (_selectedEvents.contains(event)) {
+      _selectedEvents.remove(event);
+    } else {
+      if (_selectedEvents.length >= AthleticsEvents.maxSelection) return;
+      _selectedEvents.add(event);
+    }
+    _markFieldAsTapped('events');
+    _validateField('events', _selectedEvents);
+    notifyListeners();
+  }
+
   void _resetForm() {
     emailController.clear();
     passwordController.clear();
@@ -98,6 +118,8 @@ class AuthViewModel extends ChangeNotifier {
     sportController.clear();
     dobController.clear();
     _dob = null;
+    _selectedGender = null;
+    _selectedEvents.clear();
     _formValidation = FormValidation.initial();
   }
 
@@ -118,7 +140,7 @@ class AuthViewModel extends ChangeNotifier {
 
   void _validateField(String fieldKey, dynamic value) {
     _debounceInput(() {
-      if (_formValidation.tappedFields[fieldKey]!) {
+      if (_formValidation.tappedFields[fieldKey] ?? false) {
         final updatedErrors = Map<String, String?>.from(
           _formValidation.fieldErrors,
         );
@@ -127,14 +149,14 @@ class AuthViewModel extends ChangeNotifier {
           case 'email':
             updatedErrors['email'] = ValidationService.validateEmail(
               value as String,
-              fieldTapped: _formValidation.tappedFields['email']!,
+              fieldTapped: _formValidation.tappedFields['email'] ?? false,
             );
             break;
           case 'password':
             updatedErrors['password'] = ValidationService.validatePassword(
               value as String,
               isLogin: _isLogin,
-              fieldTapped: _formValidation.tappedFields['password']!,
+              fieldTapped: _formValidation.tappedFields['password'] ?? false,
             );
             if (!_isLogin) {
               final checklist = ValidationService.getPasswordChecklist(
@@ -155,20 +177,32 @@ class AuthViewModel extends ChangeNotifier {
           case 'name':
             updatedErrors['name'] = ValidationService.validateName(
               value as String,
-              fieldTapped: _formValidation.tappedFields['name']!,
+              fieldTapped: _formValidation.tappedFields['name'] ?? false,
             );
             break;
           case 'sport':
             updatedErrors['sport'] = ValidationService.validateSport(
               value as String,
               _selectedRole,
-              fieldTapped: _formValidation.tappedFields['sport']!,
+              fieldTapped: _formValidation.tappedFields['sport'] ?? false,
             );
             break;
           case 'dob':
             updatedErrors['dob'] = ValidationService.validateDob(
               value as DateTime?,
-              fieldTapped: _formValidation.tappedFields['dob']!,
+              fieldTapped: _formValidation.tappedFields['dob'] ?? false,
+            );
+            break;
+          case 'gender':
+            updatedErrors['gender'] = ValidationService.validateGender(
+              value as String?,
+              fieldTapped: _formValidation.tappedFields['gender'] ?? false,
+            );
+            break;
+          case 'events':
+            updatedErrors['events'] = ValidationService.validateEvents(
+              (value as List).cast<String>(),
+              fieldTapped: _formValidation.tappedFields['events'] ?? false,
             );
             break;
         }
@@ -186,7 +220,7 @@ class AuthViewModel extends ChangeNotifier {
   }
 
   Color getBorderColor(String fieldKey, {bool hasText = false}) {
-    if (!_formValidation.tappedFields[fieldKey]!) {
+    if (!(_formValidation.tappedFields[fieldKey] ?? false)) {
       return Colors.grey;
     }
     if (_formValidation.fieldErrors[fieldKey] != null) {
@@ -260,6 +294,8 @@ class AuthViewModel extends ChangeNotifier {
       updatedTappedFields['name'] = true;
       updatedTappedFields['sport'] = true;
       updatedTappedFields['dob'] = true;
+      updatedTappedFields['gender'] = true;
+      updatedTappedFields['events'] = true;
 
       updatedErrors['name'] = ValidationService.validateName(
         nameController.text.trim(),
@@ -274,6 +310,14 @@ class AuthViewModel extends ChangeNotifier {
         _dob,
         forceValidate: true,
       );
+      updatedErrors['gender'] = ValidationService.validateGender(
+        _selectedGender,
+        forceValidate: true,
+      );
+      updatedErrors['events'] = ValidationService.validateEvents(
+        _selectedEvents,
+        forceValidate: true,
+      );
     }
 
     setFormValidation(
@@ -283,8 +327,7 @@ class AuthViewModel extends ChangeNotifier {
       ),
     );
 
-    final activeErrors =
-    _isLogin
+    final activeErrors = _isLogin
         ? [updatedErrors['email'], updatedErrors['password']]
         : updatedErrors.values;
 
@@ -373,7 +416,7 @@ class AuthViewModel extends ChangeNotifier {
           break;
         case 'invalid-credential':
           errorMessage =
-          "Invalid email or password. Please check your credentials.";
+              "Invalid email or password. Please check your credentials.";
           break;
         case 'too-many-requests':
           errorMessage = "Too many failed attempts. Please try again later.";
@@ -402,7 +445,7 @@ class AuthViewModel extends ChangeNotifier {
             AuthState(
               status: AuthStatus.error,
               errorMessage:
-              'Email already registered but not verified. Please check your inbox or resend verification email.',
+                  'Email already registered but not verified. Please check your inbox or resend verification email.',
             ),
           );
           return;
@@ -427,7 +470,9 @@ class AuthViewModel extends ChangeNotifier {
         name: nameController.text.trim(),
         email: email,
         role: _selectedRole,
-        sport: sportController.text.trim(),
+        sport: 'Athletics',
+        gender: _selectedGender ?? '',
+        events: List<String>.from(_selectedEvents),
         dob: _dob!,
         emailVerified: false,
         signupCompleted: true,
@@ -454,19 +499,19 @@ class AuthViewModel extends ChangeNotifier {
           );
           if (userData != null && !userData.emailVerified) {
             errorMessage =
-            'This email is already registered but not verified. Please check your inbox.';
+                'This email is already registered but not verified. Please check your inbox.';
           } else {
             errorMessage =
-            'This email is already registered. Please try logging in.';
+                'This email is already registered. Please try logging in.';
           }
           break;
         case 'weak-password':
           errorMessage =
-          'Your password must be at least 8 characters and contain a number.';
+              'Your password must be at least 8 characters and contain a number.';
           break;
         case 'operation-not-allowed':
           errorMessage =
-          'This operation is not allowed. Please contact support.';
+              'This operation is not allowed. Please contact support.';
           break;
         default:
           errorMessage =
@@ -480,8 +525,8 @@ class AuthViewModel extends ChangeNotifier {
 
   void _startEmailVerificationCheck() {
     _emailVerificationTimer = Timer.periodic(const Duration(seconds: 3), (
-        timer,
-        ) async {
+      timer,
+    ) async {
       try {
         final user = _authService.currentUser;
         if (user == null) {
@@ -536,10 +581,12 @@ class AuthViewModel extends ChangeNotifier {
       }
 
       // Set auth state with user role for navigation
-      setAuthState(AuthState(
-        status: AuthStatus.authenticated,
-        userRole: userData.role,
-      ));
+      setAuthState(
+        AuthState(
+          status: AuthStatus.authenticated,
+          userRole: userData.role,
+        ),
+      );
     } catch (e) {
       setAuthState(
         AuthState(
@@ -575,10 +622,10 @@ class AuthViewModel extends ChangeNotifier {
       String errorMessage = 'Error sending verification email';
       if (e.toString().contains('too-many-requests')) {
         errorMessage =
-        'Too many requests. Please wait a moment before trying again.';
+            'Too many requests. Please wait a moment before trying again.';
       } else if (e.toString().contains('network')) {
         errorMessage =
-        'Network error. Please check your connection and try again.';
+            'Network error. Please check your connection and try again.';
       }
       setAuthState(
         AuthState(status: AuthStatus.error, errorMessage: errorMessage),
@@ -610,7 +657,7 @@ class AuthViewModel extends ChangeNotifier {
             const AuthState(
               status: AuthStatus.emailVerificationPending,
               errorMessage:
-              'Email is still not verified. Please check your inbox and click the verification link first.',
+                  'Email is still not verified. Please check your inbox and click the verification link first.',
             ),
           );
         }

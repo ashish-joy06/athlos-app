@@ -7,7 +7,6 @@ import 'organization/organization_dashboard.dart';
 import 'auth_screen.dart';
 import 'athlete/athlete_dashboard.dart';
 import 'coach/coach_dashboard.dart';
-import 'doctor/doctor_dashboard.dart';
 
 /// Splash screen that shows an animation and navigates based on user authentication state.
 class SplashScreen extends StatefulWidget {
@@ -21,7 +20,7 @@ class SplashScreen extends StatefulWidget {
 /// State for [SplashScreen] that manages animation and navigation logic.
 class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
   late final AnimationController _controller;
-  
+
   bool _isAuthCheckComplete = false;
   bool _isAnimationComplete = false;
   Widget? _targetScreen;
@@ -47,7 +46,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
         _runOptimizedAuthCheck(),
         _simulateMinimumSplashTime(),
       ]);
-      
+
       setState(() {
         _targetScreen = results[0] as Widget;
         _isAuthCheckComplete = true;
@@ -69,7 +68,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   Future<Widget> _runOptimizedAuthCheck() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
-      
+
       if (user == null) {
         return const AuthScreen();
       }
@@ -78,11 +77,11 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
           .collection('users')
           .doc(user.uid)
           .get(const GetOptions(source: Source.cache));
-      
-      final data = doc.exists 
-          ? doc.data() 
+
+      final data = doc.exists
+          ? doc.data()
           : (await FirebaseFirestore.instance.collection('users').doc(user.uid).get()).data();
-      
+
       if (data != null && data['role'] != null) {
         final role = data['role'] as String;
         switch (role) {
@@ -90,10 +89,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
             return const DashboardScreen();
           case 'Coach':
             return const CoachDashboardScreen();
-          case 'Doctor':
-            return const DoctorDashboardScreen();
           case 'Organization':
             return const OrganizationDashboardScreen();
+          // Doctor role removed.
           default:
             return const AuthScreen();
         }
@@ -144,7 +142,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                 ),
                 const SizedBox(height: 24),
                 const Text(
-                  'Athletix',
+                  'Athlos',
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,

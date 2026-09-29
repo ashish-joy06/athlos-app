@@ -7,7 +7,6 @@ import 'package:athletix/views/widgets/email_verification_pending.dart';
 import 'package:athletix/views/widgets/responsive_helper.dart';
 import 'athlete/athlete_dashboard.dart';
 import 'coach/coach_dashboard.dart';
-import 'doctor/doctor_dashboard.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -18,7 +17,7 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   late AuthViewModel _viewModel;
-  AuthStatus? _lastAuthStatus; // Track the last auth status to prevent duplicate dialogs
+  AuthStatus? _lastAuthStatus;
 
   @override
   void initState() {
@@ -36,9 +35,7 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   void _handleAuthStateChange(AuthState authState) {
-    // Only handle state changes if the status has actually changed
     if (_lastAuthStatus == authState.status) return;
-
     _lastAuthStatus = authState.status;
 
     switch (authState.status) {
@@ -63,9 +60,6 @@ class _AuthScreenState extends State<AuthScreen> {
       case 'Coach':
         destinationScreen = const CoachDashboardScreen();
         break;
-      case 'Doctor':
-        destinationScreen = const DoctorDashboardScreen();
-        break;
       case 'Athlete':
       default:
         destinationScreen = const DashboardScreen();
@@ -79,7 +73,6 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   void _showErrorSnackBar(String message) {
-    // Use SnackBar instead of Dialog to prevent infinite loops
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -102,8 +95,6 @@ class _AuthScreenState extends State<AuthScreen> {
       value: _viewModel,
       child: Consumer<AuthViewModel>(
         builder: (context, viewModel, child) {
-          // Listen to auth state changes only when the widget is built
-          // This prevents the infinite loop issue
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _handleAuthStateChange(viewModel.authState);
           });
@@ -117,26 +108,20 @@ class _AuthScreenState extends State<AuthScreen> {
                     width: double.infinity,
                     constraints: BoxConstraints(
                       maxWidth:
-                      ResponsiveHelper.isLargeScreen(context)
-                          ? 800
-                          : double.infinity,
+                          ResponsiveHelper.isLargeScreen(context)
+                              ? 800
+                              : double.infinity,
                       minHeight: MediaQuery.of(context).size.height,
                     ),
                     padding: EdgeInsets.symmetric(
-                      horizontal: ResponsiveHelper.getResponsivePadding(
-                        context,
-                      ),
-                      vertical:
-                      MediaQuery.of(context).size.height *
-                          (ResponsiveHelper.isSmallScreen(context)
-                              ? 0.03
-                              : 0.05),
+                      horizontal: ResponsiveHelper.getResponsivePadding(context),
+                      vertical: MediaQuery.of(context).size.height *
+                          (ResponsiveHelper.isSmallScreen(context) ? 0.03 : 0.05),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Logo
                         Row(
                           mainAxisAlignment: MainAxisAlignment.start,
                           children: [
@@ -147,13 +132,9 @@ class _AuthScreenState extends State<AuthScreen> {
                           ],
                         ),
                         SizedBox(
-                          height:
-                          MediaQuery.of(context).size.height *
-                              (ResponsiveHelper.isSmallScreen(context)
-                                  ? 0.03
-                                  : 0.04),
+                          height: MediaQuery.of(context).size.height *
+                              (ResponsiveHelper.isSmallScreen(context) ? 0.03 : 0.04),
                         ),
-                        // Main content based on auth state
                         if (viewModel.authState.status ==
                             AuthStatus.emailVerificationPending)
                           const EmailVerificationPending()
