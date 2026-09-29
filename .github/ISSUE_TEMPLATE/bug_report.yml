@@ -1,0 +1,57 @@
+name: 🐛 Bug Report
+description: Report something that isn't working as expected
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! Please fill in the details below.
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: What device, OS, or platform are you using?
+      placeholder: e.g. iPhone 13, Android 12, Flutter 3.13
+    validations:
+      required: false
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: What happened? What did you expect?
+      placeholder: A clear and concise description of the issue.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce the issue?
+      placeholder: |
+        1. Go to '...'
+        2. Tap on '...'
+        3. See error: '...'
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Screenshots
+      description: Paste any relevant logs or screenshots.
+      placeholder: Drag and drop files, paste screenshots, or logs here.
+    validations:
+      required: false
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional Notes
+      description: Anything else we should know?
+      placeholder: Related issues, links, workarounds, etc.
+    validations:
+      required: false
