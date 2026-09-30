@@ -6,43 +6,42 @@ import 'package:intl/intl.dart';
 
 /// Screen for tracking athlete injuries and adding new injury records.
 class InjuryTrackerScreen extends StatefulWidget {
-  /// Creates an [InjuryTrackerScreen].
   const InjuryTrackerScreen({super.key});
 
   @override
   State<InjuryTrackerScreen> createState() => _InjuryTrackerScreenState();
 }
 
-/// State for [InjuryTrackerScreen] that manages form and Firestore logic.
 class _InjuryTrackerScreenState extends State<InjuryTrackerScreen> {
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
 
   final _injuryController = TextEditingController();
   final _notesController = TextEditingController();
-  final _dateController = TextEditingController(); // Date controller
+  final _dateController = TextEditingController();
 
   DateTime? _injuryDate;
+  String _injuryStatus = 'Active';
   bool _isLoading = false;
 
   DateTime? _logdate;
   String? _filterLogType;
 
-  /// Returns true if the form is valid (injury and date are provided).
+  static const List<String> _statuses = ['Active', 'Recovered'];
+
   bool get _isFormValid =>
       _injuryController.text.trim().isNotEmpty && _injuryDate != null;
 
-  /// Clears all form fields and resets the injury date.
   void _clearForm() {
     _injuryController.clear();
     _notesController.clear();
     _dateController.clear();
     setState(() {
       _injuryDate = null;
+      _injuryStatus = 'Active';
     });
   }
 
-  /// Adds a new injury record to Firestore if the form is valid.
   Future<void> _addInjury() async {
     if (!_isFormValid) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -60,13 +59,12 @@ class _InjuryTrackerScreenState extends State<InjuryTrackerScreen> {
       'description': _injuryController.text.trim(),
       'notes': _notesController.text.trim(),
       'date': _injuryDate!.toIso8601String(),
+      'status': _injuryStatus,
       'createdAt': FieldValue.serverTimestamp(),
     });
 
     setState(() => _isLoading = false);
-
     _clearForm();
-
     if (Navigator.canPop(context)) {
       Navigator.of(context).pop();
     }
@@ -75,34 +73,31 @@ class _InjuryTrackerScreenState extends State<InjuryTrackerScreen> {
   Future<void> _deleteInjury(String docId) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder:
-          (_) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: const Text("Delete Injury"),
-            content: const Text(
-              "Are you sure you want to delete this injury entry?",
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text("Cancel"),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text(
-                  "Delete",
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
-            ],
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("Delete Injury"),
+        content: const Text("Are you sure you want to delete this injury entry?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
           ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
     );
-
     if (confirm == true) {
       await _firestore.collection('injuries').doc(docId).delete();
     }
+  }
+
+  Future<void> _markRecovered(String docId) async {
+    await _firestore.collection('injuries').doc(docId).update({
+      'status': 'Recovered',
+    });
   }
 
   void _showAddInjurySheet(BuildContext context) {
@@ -115,13 +110,12 @@ class _InjuryTrackerScreenState extends State<InjuryTrackerScreen> {
       ),
       builder: (context) {
         final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-
         DateTime? modalInjuryDate = _injuryDate;
-        // Set initial text for date field for immediate display
-        _dateController.text =
-            modalInjuryDate != null
-                ? DateFormat('yyyy-MM-dd').format(modalInjuryDate)
-                : '';
+        String modalStatus = _injuryStatus;
+
+        _dateController.text = modalInjuryDate != null
+            ? DateFormat('yyyy-MM-dd').format(modalInjuryDate)
+            : '';
 
         return Padding(
           padding: EdgeInsets.only(
@@ -142,16 +136,14 @@ class _InjuryTrackerScreenState extends State<InjuryTrackerScreen> {
                 if (picked != null) {
                   setModalState(() {
                     modalInjuryDate = picked;
-                    _dateController.text = DateFormat(
-                      'yyyy-MM-dd',
-                    ).format(picked);
+                    _dateController.text =
+                        DateFormat('yyyy-MM-dd').format(picked);
                   });
                   setState(() => _injuryDate = picked);
                 }
               }
 
-              final isFormValid =
-                  _injuryController.text.trim().isNotEmpty &&
+              final isFormValid = _injuryController.text.trim().isNotEmpty &&
                   modalInjuryDate != null;
 
               return SingleChildScrollView(
@@ -160,7 +152,9 @@ class _InjuryTrackerScreenState extends State<InjuryTrackerScreen> {
                   children: [
                     Text(
                       "Add Injury",
-                      style: Theme.of(context).textTheme.headlineSmall
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineSmall
                           ?.copyWith(color: Colors.black87),
                     ),
                     const SizedBox(height: 18),
@@ -186,6 +180,23 @@ class _InjuryTrackerScreenState extends State<InjuryTrackerScreen> {
                       onTap: pickDate,
                     ),
                     const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: modalStatus,
+                      decoration: const InputDecoration(
+                        labelText: "Status",
+                        prefixIcon: Icon(Icons.healing_rounded),
+                        border: OutlineInputBorder(),
+                      ),
+                      items: _statuses
+                          .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                          .toList(),
+                      onChanged: (v) {
+                        if (v == null) return;
+                        setModalState(() => modalStatus = v);
+                        setState(() => _injuryStatus = v);
+                      },
+                    ),
+                    const SizedBox(height: 16),
                     TextField(
                       controller: _notesController,
                       decoration: const InputDecoration(
@@ -207,9 +218,7 @@ class _InjuryTrackerScreenState extends State<InjuryTrackerScreen> {
                             },
                             style: OutlinedButton.styleFrom(
                               side: const BorderSide(
-                                color: Colors.grey,
-                                width: 1.3,
-                              ),
+                                  color: Colors.grey, width: 1.3),
                               backgroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
@@ -229,19 +238,17 @@ class _InjuryTrackerScreenState extends State<InjuryTrackerScreen> {
                         const SizedBox(width: 16),
                         Expanded(
                           child: OutlinedButton(
-                            onPressed:
-                                isFormValid
-                                    ? () async {
-                                      await _addInjury();
-                                    }
-                                    : null,
+                            onPressed: isFormValid
+                                ? () async {
+                                    await _addInjury();
+                                  }
+                                : null,
                             style: OutlinedButton.styleFrom(
                               backgroundColor: Colors.white,
                               side: BorderSide(
-                                color:
-                                    isFormValid
-                                        ? const Color(0xFF1565C0)
-                                        : Colors.grey,
+                                color: isFormValid
+                                    ? const Color(0xFF1565C0)
+                                    : Colors.grey,
                                 width: 1.6,
                               ),
                               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -252,10 +259,9 @@ class _InjuryTrackerScreenState extends State<InjuryTrackerScreen> {
                             child: Text(
                               'Add',
                               style: TextStyle(
-                                color:
-                                    isFormValid
-                                        ? const Color(0xFF1565C0)
-                                        : Colors.grey,
+                                color: isFormValid
+                                    ? const Color(0xFF1565C0)
+                                    : Colors.grey,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
                               ),
@@ -296,7 +302,6 @@ class _InjuryTrackerScreenState extends State<InjuryTrackerScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isNarrow = constraints.maxWidth < 400;
-
         return Center(
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 300),
@@ -314,159 +319,149 @@ class _InjuryTrackerScreenState extends State<InjuryTrackerScreen> {
                 ),
               ],
             ),
-            child:
-                isNarrow
-                    ? Column(
-                      children: [
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.date_range),
-                              onPressed: () {
-                                pickDate();
-                              },
-                              tooltip: 'Select Date Range',
-                              splashRadius: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: TextField(
-                                // controller: _FilterController,
-                                decoration: InputDecoration(
-                                  hintText: 'Filter activity',
-                                  prefixIcon: const Icon(
-                                    Icons.filter_alt,
-                                    size: 20,
-                                  ),
-                                  filled: true,
-                                  fillColor:
-                                      isDark
-                                          ? const Color(0xFF23262F)
-                                          : Colors.grey[100],
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    vertical: 0,
-                                    horizontal: 12,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                  hintStyle: GoogleFonts.nunito(
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.grey[500],
-                                  ),
+            child: isNarrow
+                ? Column(
+                    children: [
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.date_range),
+                            onPressed: pickDate,
+                            tooltip: 'Select Date Range',
+                            splashRadius: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextField(
+                              decoration: InputDecoration(
+                                hintText: 'Filter activity',
+                                prefixIcon:
+                                    const Icon(Icons.filter_alt, size: 20),
+                                filled: true,
+                                fillColor: isDark
+                                    ? const Color(0xFF23262F)
+                                    : Colors.grey[100],
+                                contentPadding: const EdgeInsets.symmetric(
+                                    vertical: 0, horizontal: 12),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: BorderSide.none,
                                 ),
-                                style: GoogleFonts.nunito(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 15,
+                                hintStyle: GoogleFonts.nunito(
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.grey[500],
                                 ),
-                                onChanged:
-                                    (val) => setState(() {
-                                      _filterLogType = val;
-                                    }),
                               ),
-                            ),
-                          ],
-                        ),
-                        if (_logdate != null ||
-                            (_filterLogType != null &&
-                                _filterLogType!.isNotEmpty))
-                          Padding(
-                            padding: const EdgeInsets.only(left: 8),
-                            child: IconButton(
-                              icon: const Icon(
-                                Icons.close_rounded,
-                                color: Colors.redAccent,
-                                size: 22,
+                              style: GoogleFonts.nunito(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
                               ),
-                              tooltip: 'Clear Filters',
-                              splashRadius: 20,
-                              onPressed: () {
-                                setState(() {
-                                  _logdate = null;
-                                  _filterLogType = null;
-                                  //  _FilterController.clear();
-                                });
-                              },
+                              onChanged: (val) => setState(() {
+                                _filterLogType = val;
+                              }),
                             ),
                           ),
-                      ],
-                    )
-                    : Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.date_range),
-                          onPressed: () {
-                            pickDate();
-                          },
-                          tooltip: 'Select Date Range',
-                          splashRadius: 20,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            decoration: InputDecoration(
-                              hintText: 'Filter Category',
-                              prefixIcon: const Icon(
-                                Icons.filter_alt,
-                                size: 20,
-                              ),
-                              filled: true,
-                              fillColor:
-                                  isDark
-                                      ? const Color(0xFF23262F)
-                                      : Colors.grey[100],
-                              contentPadding: const EdgeInsets.symmetric(
-                                vertical: 0,
-                                horizontal: 12,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(14),
-                                borderSide: BorderSide.none,
-                              ),
-                              hintStyle: GoogleFonts.nunito(
-                                fontWeight: FontWeight.w500,
-                                color: Colors.grey[500],
-                              ),
-                            ),
-                            style: GoogleFonts.nunito(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 15,
-                            ),
-                            onChanged:
-                                (val) => setState(() {
-                                  _filterLogType = val;
-                                }),
+                        ],
+                      ),
+                      if (_logdate != null ||
+                          (_filterLogType != null &&
+                              _filterLogType!.isNotEmpty))
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: IconButton(
+                            icon: const Icon(Icons.close_rounded,
+                                color: Colors.redAccent, size: 22),
+                            tooltip: 'Clear Filters',
+                            splashRadius: 20,
+                            onPressed: () => setState(() {
+                              _logdate = null;
+                              _filterLogType = null;
+                            }),
                           ),
                         ),
-
-                        if (_logdate != null ||
-                            (_filterLogType != null &&
-                                _filterLogType!.isNotEmpty))
-                          Padding(
-                            padding: const EdgeInsets.only(left: 8),
-                            child: IconButton(
-                              icon: const Icon(
-                                Icons.close_rounded,
-                                color: Colors.redAccent,
-                                size: 22,
-                              ),
-                              tooltip: 'Clear Filters',
-                              splashRadius: 20,
-                              onPressed: () {
-                                setState(() {
-                                  _logdate = null;
-                                  _filterLogType = null;
-                                  // _FilterController.clear();
-                                });
-                              },
+                    ],
+                  )
+                : Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.date_range),
+                        onPressed: pickDate,
+                        tooltip: 'Select Date Range',
+                        splashRadius: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          decoration: InputDecoration(
+                            hintText: 'Filter Category',
+                            prefixIcon:
+                                const Icon(Icons.filter_alt, size: 20),
+                            filled: true,
+                            fillColor: isDark
+                                ? const Color(0xFF23262F)
+                                : Colors.grey[100],
+                            contentPadding: const EdgeInsets.symmetric(
+                                vertical: 0, horizontal: 12),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide.none,
+                            ),
+                            hintStyle: GoogleFonts.nunito(
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey[500],
                             ),
                           ),
-                      ],
-                    ),
+                          style: GoogleFonts.nunito(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                          ),
+                          onChanged: (val) => setState(() {
+                            _filterLogType = val;
+                          }),
+                        ),
+                      ),
+                      if (_logdate != null ||
+                          (_filterLogType != null &&
+                              _filterLogType!.isNotEmpty))
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: IconButton(
+                            icon: const Icon(Icons.close_rounded,
+                                color: Colors.redAccent, size: 22),
+                            tooltip: 'Clear Filters',
+                            splashRadius: 20,
+                            onPressed: () => setState(() {
+                              _logdate = null;
+                              _filterLogType = null;
+                            }),
+                          ),
+                        ),
+                    ],
+                  ),
           ),
         );
       },
+    );
+  }
+
+  Widget _statusChip(String status) {
+    final isActive = status == 'Active';
+    final color = isActive ? const Color(0xFFEF4444) : const Color(0xFF10B981);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Text(
+        status,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 
@@ -474,6 +469,7 @@ class _InjuryTrackerScreenState extends State<InjuryTrackerScreen> {
     final data = doc.data() as Map<String, dynamic>;
     final description = data['description'] ?? '';
     final notes = data['notes'] ?? '';
+    final status = (data['status'] ?? 'Active').toString();
     String dateStr = '';
     try {
       final date = DateTime.parse(data['date'] ?? '');
@@ -486,23 +482,52 @@ class _InjuryTrackerScreenState extends State<InjuryTrackerScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: ListTile(
-        title: Text(
-          description,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-        ),
-        subtitle: Column(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    description,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                _statusChip(status),
+              ],
+            ),
             const SizedBox(height: 6),
             Text("Date: $dateStr"),
-            if (notes.isNotEmpty) Text("Notes: $notes"),
+            if (notes.toString().isNotEmpty) Text("Notes: $notes"),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                if (status == 'Active')
+                  TextButton.icon(
+                    onPressed: () => _markRecovered(doc.id),
+                    icon: const Icon(Icons.check_circle_outline,
+                        size: 18, color: Color(0xFF10B981)),
+                    label: const Text(
+                      'Mark Recovered',
+                      style: TextStyle(
+                          color: Color(0xFF10B981), fontSize: 12),
+                    ),
+                  ),
+                const Spacer(),
+                IconButton(
+                  onPressed: () => _deleteInjury(doc.id),
+                  icon: const Icon(Icons.delete_outline,
+                      color: Colors.redAccent),
+                  tooltip: "Delete Injury",
+                ),
+              ],
+            ),
           ],
-        ),
-        trailing: IconButton(
-          onPressed: () => _deleteInjury(doc.id),
-          icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-          tooltip: "Delete Injury",
         ),
       ),
     );
@@ -534,9 +559,7 @@ class _InjuryTrackerScreenState extends State<InjuryTrackerScreen> {
         padding: EdgeInsets.all(basePadding),
         child: ListView(
           children: [
-            // CustomeSearch(filterLogType: _filterLogType, logdate: _logdate),
             _buildFilters(),
-
             if (_logdate != null ||
                 (_filterLogType != null && _filterLogType!.isNotEmpty))
               Padding(
@@ -549,14 +572,12 @@ class _InjuryTrackerScreenState extends State<InjuryTrackerScreen> {
                   style: const TextStyle(fontSize: 16, color: Colors.grey),
                 ),
               ),
-
             StreamBuilder<QuerySnapshot>(
-              stream:
-                  _firestore
-                      .collection('injuries')
-                      .where('uid', isEqualTo: uid)
-                      .orderBy('createdAt', descending: true)
-                      .snapshots(),
+              stream: _firestore
+                  .collection('injuries')
+                  .where('uid', isEqualTo: uid)
+                  .orderBy('createdAt', descending: true)
+                  .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -571,61 +592,33 @@ class _InjuryTrackerScreenState extends State<InjuryTrackerScreen> {
                 }
 
                 final docs = snapshot.data!.docs;
-
                 List<QueryDocumentSnapshot> filteredDocs = docs;
 
                 if (_logdate != null) {
-                  final startOfDay = DateTime(
-                    _logdate!.year,
-                    _logdate!.month,
-                    _logdate!.day,
-                  );
+                  final startOfDay =
+                      DateTime(_logdate!.year, _logdate!.month, _logdate!.day);
                   final endOfDay = startOfDay.add(const Duration(days: 1));
-
-                  filteredDocs =
-                      docs.where((doc) {
-                        final date = DateTime.parse(
-                          doc['date'] as String,
-                        ); // parse ISO8601 string
-                        return (date.isAtSameMomentAs(startOfDay) ||
-                                date.isAfter(startOfDay)) &&
-                            date.isBefore(endOfDay);
-                      }).toList();
+                  filteredDocs = docs.where((doc) {
+                    final date = DateTime.parse(doc['date'] as String);
+                    return (date.isAtSameMomentAs(startOfDay) ||
+                            date.isAfter(startOfDay)) &&
+                        date.isBefore(endOfDay);
+                  }).toList();
                 }
-
-                // List<QueryDocumentSnapshot> filteredDocs = docs;
-
-                // if (_logdate != null) {
-                //   final startOfDay = DateTime(
-                //     _logdate!.year,
-                //     _logdate!.month,
-                //     _logdate!.day,
-                //   );
-                //   final endOfDay = startOfDay.add(const Duration(days: 1));
-
-                //   filteredDocs =
-                //       docs.where((doc) {
-                //         final date = (doc['date'] as Timestamp).toDate();
-                //         return (date.isAtSameMomentAs(startOfDay) ||
-                //                 date.isAfter(startOfDay)) &&
-                //             date.isBefore(endOfDay);
-                //       }).toList();
-                // }
 
                 if (_filterLogType != null && _filterLogType!.isNotEmpty) {
                   final search = _filterLogType!.toLowerCase();
-                  filteredDocs =
-                      filteredDocs.where((doc) {
-                        final activity =
-                            (doc['description'] as String).toLowerCase();
-                        return activity.contains(search);
-                      }).toList();
+                  filteredDocs = filteredDocs.where((doc) {
+                    final activity =
+                        (doc['description'] as String).toLowerCase();
+                    return activity.contains(search);
+                  }).toList();
                 }
 
                 if (filteredDocs.isEmpty) {
                   return const Padding(
                     padding: EdgeInsets.symmetric(vertical: 20),
-                    child: Center(child: Text("No performance logs yet.")),
+                    child: Center(child: Text("No matching injuries.")),
                   );
                 }
 
@@ -634,9 +627,8 @@ class _InjuryTrackerScreenState extends State<InjuryTrackerScreen> {
                   physics: const NeverScrollableScrollPhysics(),
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   itemCount: filteredDocs.length,
-                  itemBuilder:
-                      (context, index) =>
-                          _buildInjuryCard(context, filteredDocs[index]),
+                  itemBuilder: (context, index) =>
+                      _buildInjuryCard(context, filteredDocs[index]),
                 );
               },
             ),

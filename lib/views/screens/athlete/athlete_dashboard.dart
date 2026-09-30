@@ -1,20 +1,21 @@
 import 'package:athletix/components/alertDialog_signOut_confitmation.dart';
+import 'package:athletix/components/announcements_marquee.dart';
+import 'package:athletix/components/attendance_panel.dart';
+import 'package:athletix/components/achievements_box.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'dart:math';
+import 'package:lottie/lottie.dart';
 
 import 'package:athletix/components/bottom_nav_bar.dart';
-import 'package:lottie/lottie.dart';
+import 'package:athletix/components/fcm_listener.dart';
+import 'package:athletix/views/screens/profile_screen.dart';
+
 import 'injury_tracker_screen.dart';
 import 'performance_logs_screen.dart';
 import 'calendar_screen.dart';
 import 'tournaments_screen.dart';
-import '../profile_screen.dart';
-import 'package:athletix/components/fcm_listener.dart';
-import 'financial_tracker_screen.dart';
+import 'absence_appeal_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -29,35 +30,9 @@ class _DashboardScreenState extends State<DashboardScreen>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
-  List quotes = [];
-  int number_ = 0;
-
-  Future<void> Fetchquotes() async {
-    try {
-      final response = await http.get(
-        Uri.parse(
-          'https://raw.githubusercontent.com/Keshav8605/Athletix/refs/heads/motivation_quote_feature_add/assets/motivational_quotes.json',
-        ),
-      );
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (!mounted) return;
-        setState(() {
-          quotes = data;
-          if (quotes.isNotEmpty) {
-            number_ = Random().nextInt(quotes.length);
-          }
-        });
-      }
-    } catch (_) {
-      // Quote is optional; ignore network failures.
-    }
-  }
-
   @override
   void initState() {
     super.initState();
-    Fetchquotes();
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
@@ -118,11 +93,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                   if (data == null) {
                     return _buildErrorState();
                   }
-
                   final name = data['name'] ?? '';
                   final sport = data['sport'] ?? '';
-                  final dob = data['dob']?.toString().split('T').first ?? '';
-
+                  final dob =
+                      data['dob']?.toString().split('T').first ?? '';
                   return _buildDashboardContent(name, sport, dob);
                 },
               ),
@@ -181,7 +155,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Widget _buildLoadingState() {
-    return Container(
+    return SizedBox(
       height: MediaQuery.of(context).size.height * 0.6,
       child: const Center(
         child: Column(
@@ -207,17 +181,14 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Widget _buildErrorState() {
-    return Container(
+    return SizedBox(
       height: MediaQuery.of(context).size.height * 0.6,
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.error_outline_rounded,
-              size: 64,
-              color: Colors.grey,
-            ),
+            const Icon(Icons.error_outline_rounded,
+                size: 64, color: Colors.grey),
             const SizedBox(height: 16),
             const Text(
               'User data not found',
@@ -234,9 +205,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
-              onPressed: () {
-                setState(() {});
-              },
+              onPressed: () => setState(() {}),
               icon: const Icon(Icons.refresh),
               label: const Text('Refresh'),
               style: ElevatedButton.styleFrom(
@@ -260,10 +229,22 @@ class _DashboardScreenState extends State<DashboardScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildWelcomeCard(name, sport, dob),
-          const SizedBox(height: 32),
+          const SizedBox(height: 20),
+
+          // Announcements marquee (top)
+          const AnnouncementsMarquee(),
+          const SizedBox(height: 20),
+
+          // Attendance panel (above Quick Actions)
+          const AttendancePanel(),
+          const SizedBox(height: 28),
+
+          // Quick Actions
           _buildQuickActionsSection(),
-          const SizedBox(height: 32),
-          _buildStatsOverview(),
+          const SizedBox(height: 20),
+
+          // Achievements — bottom right
+          const AchievementsBox(),
           const SizedBox(height: 32),
         ],
       ),
@@ -299,23 +280,13 @@ class _DashboardScreenState extends State<DashboardScreen>
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            const Text("Todays Quote"),
-            const SizedBox(height: 5),
-            Text(
-              (quotes.isEmpty || number_ >= quotes.length)
-                  ? "Stay motivated — loading today's quote…"
-                  : "${quotes[number_]['quote']}",
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 30),
             Lottie.asset(
               'assets/Athlete.json',
-              width: 150,
-              height: 150,
+              width: 130,
+              height: 130,
               fit: BoxFit.cover,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Container(
@@ -424,33 +395,18 @@ class _DashboardScreenState extends State<DashboardScreen>
             ),
           ],
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         GridView.count(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 1.1,
+          crossAxisCount: 3,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+          childAspectRatio: 1.0,
           children: [
-            _buildEnhancedActionCard(
-              icon: Icons.healing_rounded,
-              label: "Injury Tracker",
-              subtitle: "Monitor your health",
-              gradient: const [Color(0xFFFF6B6B), Color(0xFFEE5A52)],
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const InjuryTrackerScreen(),
-                  ),
-                );
-              },
-            ),
-            _buildEnhancedActionCard(
+            _buildActionCard(
               icon: Icons.show_chart_rounded,
               label: "Performance",
-              subtitle: "Track your progress",
               gradient: const [Color(0xFF4ECDC4), Color(0xFF44A08D)],
               onTap: () {
                 Navigator.push(
@@ -461,16 +417,28 @@ class _DashboardScreenState extends State<DashboardScreen>
                 );
               },
             ),
-            _buildEnhancedActionCard(
-              icon: Icons.account_balance_wallet_rounded,
-              label: "Finances",
-              subtitle: "Manage expenses",
+            _buildActionCard(
+              icon: Icons.healing_rounded,
+              label: "Injury",
+              gradient: const [Color(0xFFFF6B6B), Color(0xFFEE5A52)],
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const InjuryTrackerScreen(),
+                  ),
+                );
+              },
+            ),
+            _buildActionCard(
+              icon: Icons.event_busy_rounded,
+              label: "Appeal",
               gradient: const [Color(0xFF667EEA), Color(0xFF764BA2)],
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const FinancialTrackerPage(),
+                    builder: (_) => const AbsenceAppealScreen(),
                   ),
                 );
               },
@@ -481,67 +449,56 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  Widget _buildEnhancedActionCard({
+  Widget _buildActionCard({
     required IconData icon,
     required String label,
-    required String subtitle,
     required List<Color> gradient,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+      child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: gradient,
           ),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
               color: gradient[0].withOpacity(0.3),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
             onTap: onTap,
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(10),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(16),
+                      color: Colors.white.withOpacity(0.22),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(icon, size: 32, color: Colors.white),
+                    child: Icon(icon, size: 22, color: Colors.white),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   Text(
                     label,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
                       fontSize: 12,
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white,
                     ),
                   ),
                 ],
@@ -553,127 +510,16 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  Widget _buildStatsOverview() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 4,
-              height: 24,
-              decoration: BoxDecoration(
-                color: const Color(0xFF667EEA),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Text(
-              'This Week',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1A202C),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatCard(
-                title: 'Training Sessions',
-                value: '8',
-                icon: Icons.fitness_center_rounded,
-                color: const Color(0xFF4ECDC4),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildStatCard(
-                title: 'Hours Trained',
-                value: '12.5',
-                icon: Icons.timer_rounded,
-                color: const Color(0xFFFF6B6B),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatCard({
-    required String title,
-    required String value,
-    required IconData icon,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Icon(icon, color: color, size: 24),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   String _formatDate(String dateStr) {
     if (dateStr.isEmpty) return 'Not set';
     try {
       final date = DateTime.parse(dateStr);
-      final months = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
+      const months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
       ];
       return '${months[date.month - 1]} ${date.day}';
-    } catch (e) {
+    } catch (_) {
       return dateStr;
     }
   }

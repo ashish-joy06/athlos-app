@@ -291,34 +291,28 @@ class AuthViewModel extends ChangeNotifier {
     );
 
     if (!_isLogin) {
-      updatedTappedFields['name'] = true;
-      updatedTappedFields['sport'] = true;
-      updatedTappedFields['dob'] = true;
-      updatedTappedFields['gender'] = true;
-      updatedTappedFields['events'] = true;
+  updatedTappedFields['name'] = true;
+  updatedTappedFields['sport'] = true;
+  updatedTappedFields['dob'] = true;
+  updatedTappedFields['gender'] = true;
 
-      updatedErrors['name'] = ValidationService.validateName(
-        nameController.text.trim(),
-        forceValidate: true,
-      );
-      updatedErrors['sport'] = ValidationService.validateSport(
-        sportController.text.trim(),
-        _selectedRole,
-        forceValidate: true,
-      );
-      updatedErrors['dob'] = ValidationService.validateDob(
-        _dob,
-        forceValidate: true,
-      );
-      updatedErrors['gender'] = ValidationService.validateGender(
-        _selectedGender,
-        forceValidate: true,
-      );
-      updatedErrors['events'] = ValidationService.validateEvents(
-        _selectedEvents,
-        forceValidate: true,
-      );
-    }
+  updatedErrors['name'] = ValidationService.validateName(
+    nameController.text.trim(),
+    forceValidate: true,
+  );
+  // Sport field is locked to 'Athletics' for now — set it explicitly so
+  // validation always passes even though the dropdown is disabled.
+  sportController.text = 'Athletics';
+  updatedErrors['sport'] = null;
+  updatedErrors['dob'] = ValidationService.validateDob(
+    _dob,
+    forceValidate: true,
+  );
+  updatedErrors['gender'] = ValidationService.validateGender(
+    _selectedGender,
+    forceValidate: true,
+  );
+}
 
     setFormValidation(
       _formValidation.copyWith(
@@ -472,7 +466,7 @@ class AuthViewModel extends ChangeNotifier {
         role: _selectedRole,
         sport: 'Athletics',
         gender: _selectedGender ?? '',
-        events: List<String>.from(_selectedEvents),
+        events: const <String>[],
         dob: _dob!,
         emailVerified: false,
         signupCompleted: true,
