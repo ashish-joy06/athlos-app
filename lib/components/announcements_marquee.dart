@@ -1,12 +1,43 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:marquee/marquee.dart';
 
-/// A scrolling marquee that shows the latest announcement.
-/// Reads from the `announcements` collection (newest first).
-/// Falls back to a placeholder if the collection is empty.
-class AnnouncementsMarquee extends StatelessWidget {
+/// A scrolling marquee that shows the latest announcement visible to the
+/// current user.
+///
+/// Rules:
+/// - Admin announcements (`sport == null`) are visible to everyone.
+/// - Coach announcements (`sport == "Athletics"`) are visible only to users
+///   whose `sport` matches.
+class AnnouncementsMarquee extends StatefulWidget {
   const AnnouncementsMarquee({super.key});
+
+  @override
+  State<AnnouncementsMarquee> createState() => _AnnouncementsMarqueeState();
+}
+
+class _AnnouncementsMarqueeState extends State<AnnouncementsMarquee> {
+  String? _mySport;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSport();
+  }
+
+  Future<void> _loadSport() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .get();
+    if (!mounted) return;
+    setState(() {
+      _mySport = (doc.data()?['sport'] ?? 'Athletics').toString();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,10 +68,10 @@ class AnnouncementsMarquee extends StatelessWidget {
               stream: FirebaseFirestore.instance
                   .collection('announcements')
                   .orderBy('createdAt', descending: true)
-                  .limit(1)
+                  .limit(20)
                   .snapshots(),
               builder: (context, snapshot) {
-                final text = _extractText(snapshot);
+                final text = _pickText(snapshot);
                 return SizedBox(
                   height: 20,
                   child: Marquee(
@@ -70,11 +101,24 @@ class AnnouncementsMarquee extends StatelessWidget {
     );
   }
 
-  String _extractText(AsyncSnapshot<QuerySnapshot> snapshot) {
+  String _pickText(AsyncSnapshot<QuerySnapshot> snapshot) {
     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
       return 'No announcements yet — stay tuned!';
     }
-    final data = snapshot.data!.docs.first.data() as Map<String, dynamic>;
-    return (data['message'] ?? data['title'] ?? 'Announcement').toString();
+    // Walk from newest to oldest; return the first one visible to me.
+    for (final doc in snapshot.data!.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      final annSport = data['sport'];
+      final visible = annSport == null ||
+          _mySport == null ||
+          annSport == _mySport;
+      if (visible) {
+        final msg = (data['message'] ?? '').toString();
+        final title = (data['title'] ?? '').toString();
+        if (title.isNotEmpty && msg.isNotEmpty) return '$title — $msg';
+        return msg.isNotEmpty ? msg : title;
+      }
+    }
+    return 'No announcements for your sport yet.';
   }
 }
