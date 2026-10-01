@@ -1,7 +1,6 @@
 import 'package:athletix/components/achievements_box.dart';
 import 'package:athletix/components/alertDialog_signOut_confitmation.dart';
 import 'package:athletix/components/announcements_marquee.dart';
-import 'package:athletix/views/screens/athlete/calendar_screen.dart';
 import 'package:athletix/views/screens/athlete/tournaments_screen.dart';
 import 'package:athletix/views/screens/profile_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -9,10 +8,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
+import 'coach_appeals_screen.dart';
 import 'create_session_screen.dart';
-import 'mark_attendance_screen.dart';
 import 'make_announcement_screen.dart';
 import 'team_injuries_screen.dart';
+import 'coach_calendar_screen.dart';
+import 'coach_athletes_screen.dart';
 
 class CoachDashboardScreen extends StatefulWidget {
   const CoachDashboardScreen({super.key});
@@ -50,7 +51,7 @@ class _CoachDashboardScreenState extends State<CoachDashboardScreen>
   Widget build(BuildContext context) {
     final screens = [
       _buildHomeTab(),
-      const CalendarScreen(),
+      const CoachCalendarScreen(),
       const TournamentsScreen(),
       const ProfileScreen(),
     ];
@@ -414,19 +415,19 @@ class _CoachDashboardScreenState extends State<CoachDashboardScreen>
             ),
 
             // 2. Attendance
-            _buildActionCard(
-              icon: Icons.how_to_reg_rounded,
-              label: 'Attendance',
-              gradient: const [Color(0xFF10B981), Color(0xFF059669)],
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const MarkAttendanceScreen(),
-                  ),
-                );
-              },
-            ),
+           _buildActionCard(
+  icon: Icons.people_alt_rounded,
+  label: 'Athletes',
+  gradient: const [Color(0xFF14B8A6), Color(0xFF0D9488)],
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const CoachAthletesScreen(),
+      ),
+    );
+  },
+),
 
             // 3. Injuries (with badge, expand-fit)
             StreamBuilder<QuerySnapshot>(
@@ -482,17 +483,18 @@ class _CoachDashboardScreenState extends State<CoachDashboardScreen>
 
             // 4. Appeals (NEW)
             _buildActionCard(
-              icon: Icons.inbox_rounded,
-              label: 'Appeals',
-              gradient: const [Color(0xFFF59E0B), Color(0xFFD97706)],
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Appeals inbox — coming soon'),
-                  ),
-                );
-              },
-            ),
+  icon: Icons.inbox_rounded,
+  label: 'Appeals',
+  gradient: const [Color(0xFFF59E0B), Color(0xFFD97706)],
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const CoachAppealsScreen(),
+      ),
+    );
+  },
+),
 
             // 5. Announce
             _buildActionCard(

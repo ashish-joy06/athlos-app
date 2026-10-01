@@ -404,46 +404,72 @@ class _DashboardScreenState extends State<DashboardScreen>
           mainAxisSpacing: 10,
           childAspectRatio: 1.0,
           children: [
-            _buildActionCard(
-              icon: Icons.show_chart_rounded,
-              label: "Performance",
-              gradient: const [Color(0xFF4ECDC4), Color(0xFF44A08D)],
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const PerformanceLogScreen(),
-                  ),
-                );
-              },
+  _buildActionCard(
+    icon: Icons.show_chart_rounded,
+    label: "Performance",
+    gradient: const [Color(0xFF4ECDC4), Color(0xFF44A08D)],
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const PerformanceLogScreen(),
+        ),
+      );
+    },
+  ),
+  _buildActionCard(
+    icon: Icons.healing_rounded,
+    label: "Injury",
+    gradient: const [Color(0xFFFF6B6B), Color(0xFFEE5A52)],
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const InjuryTrackerScreen(),
+        ),
+      );
+    },
+  ),
+  _buildActionCard(
+    icon: Icons.event_busy_rounded,
+    label: "Appeal",
+    gradient: const [Color(0xFF667EEA), Color(0xFF764BA2)],
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const AbsenceAppealScreen(),
+        ),
+      );
+    },
+  ),
+  // My Squad — only visible to captains
+  FutureBuilder<DocumentSnapshot>(
+    future: FirebaseFirestore.instance
+        .collection('users')
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .get(),
+    builder: (context, snap) {
+      if (!snap.hasData) return const SizedBox.shrink();
+      final data = snap.data!.data() as Map<String, dynamic>?;
+      final isCaptain = data?['isCaptain'] == true;
+      if (!isCaptain) return const SizedBox.shrink();
+
+      return _buildActionCard(
+        icon: Icons.groups_rounded,
+        label: "My Squad",
+        gradient: const [Color(0xFFF59E0B), Color(0xFFD97706)],
+        onTap: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('My Squad screen — coming in Batch 2F'),
             ),
-            _buildActionCard(
-              icon: Icons.healing_rounded,
-              label: "Injury",
-              gradient: const [Color(0xFFFF6B6B), Color(0xFFEE5A52)],
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const InjuryTrackerScreen(),
-                  ),
-                );
-              },
-            ),
-            _buildActionCard(
-              icon: Icons.event_busy_rounded,
-              label: "Appeal",
-              gradient: const [Color(0xFF667EEA), Color(0xFF764BA2)],
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const AbsenceAppealScreen(),
-                  ),
-                );
-              },
-            ),
-          ],
+          );
+        },
+      );
+    },
+  ),
+],
         ),
       ],
     );

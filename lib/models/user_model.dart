@@ -14,6 +14,11 @@ class UserModel {
   final DateTime createdAt;
   final String? fcmToken;
 
+  // Hierarchy fields (attendance only)
+  final bool isCaptain;
+  final String? captainLevel; // 'main' | 'sub' | null
+  final String? reportsToUid;
+
   UserModel({
     required this.uid,
     required this.name,
@@ -27,6 +32,9 @@ class UserModel {
     required this.signupCompleted,
     required this.createdAt,
     this.fcmToken,
+    this.isCaptain = false,
+    this.captainLevel,
+    this.reportsToUid,
   });
 
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
@@ -42,8 +50,11 @@ class UserModel {
       dob: DateTime.parse(data['dob'] ?? DateTime.now().toIso8601String()),
       emailVerified: data['emailVerified'] ?? false,
       signupCompleted: data['signupCompleted'] ?? false,
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       fcmToken: data['fcmToken'],
+      isCaptain: data['isCaptain'] ?? false,
+      captainLevel: data['captainLevel'],
+      reportsToUid: data['reportsToUid'],
     );
   }
 
@@ -60,6 +71,9 @@ class UserModel {
       'signupCompleted': signupCompleted,
       'createdAt': Timestamp.fromDate(createdAt),
       if (fcmToken != null) 'fcmToken': fcmToken,
+      'isCaptain': isCaptain,
+      'captainLevel': captainLevel,
+      'reportsToUid': reportsToUid,
     };
   }
 
@@ -76,6 +90,9 @@ class UserModel {
     bool? signupCompleted,
     DateTime? createdAt,
     String? fcmToken,
+    bool? isCaptain,
+    String? captainLevel,
+    String? reportsToUid,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -90,6 +107,9 @@ class UserModel {
       signupCompleted: signupCompleted ?? this.signupCompleted,
       createdAt: createdAt ?? this.createdAt,
       fcmToken: fcmToken ?? this.fcmToken,
+      isCaptain: isCaptain ?? this.isCaptain,
+      captainLevel: captainLevel ?? this.captainLevel,
+      reportsToUid: reportsToUid ?? this.reportsToUid,
     );
   }
 }

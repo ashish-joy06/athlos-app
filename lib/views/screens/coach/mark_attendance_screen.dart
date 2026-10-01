@@ -28,10 +28,24 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
   ];
 
   @override
-  void initState() {
-    super.initState();
-    _selectedSessionId = widget.sessionId;
+void initState() {
+  super.initState();
+  _selectedSessionId = widget.sessionId;
+  if (_selectedSessionId != null) {
+    _loadPreselectedSession();
   }
+}
+
+Future<void> _loadPreselectedSession() async {
+  final doc = await FirebaseFirestore.instance
+      .collection('training_sessions')
+      .doc(_selectedSessionId)
+      .get();
+  if (!mounted) return;
+  if (doc.exists) {
+    setState(() => _selectedSession = doc.data());
+  }
+}
 
   Future<void> _saveAll(Map<String, String> marks) async {
     if (_selectedSessionId == null || _selectedSession == null) return;

@@ -1,34 +1,48 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-/// Session color presets. `name` is stored in Firestore; `color` is used
-/// for the UI dot and the calendar highlight.
-const List<Map<String, dynamic>> kSessionColors = [
-  {'name': 'purple', 'label': 'Training',   'color': Color(0xFF667EEA)},
-  {'name': 'green',  'label': 'Practice',   'color': Color(0xFF10B981)},
-  {'name': 'red',    'label': 'Important',  'color': Color(0xFFEF4444)},
-  {'name': 'blue',   'label': 'Camp',       'color': Color(0xFF3B82F6)},
-  {'name': 'orange', 'label': 'Meet',       'color': Color(0xFFF59E0B)},
-  {'name': 'grey',   'label': 'Optional',   'color': Color(0xFF94A3B8)},
-];
+import 'create_session_screen.dart' show kSessionColors;
 
-class CreateSessionScreen extends StatefulWidget {
-  const CreateSessionScreen({super.key});
+/// Edit an existing training session. Only reaches this screen if the coach
+/// owns the sport — enforced by Firestore rules and the caller.
+class EditSessionScreen extends StatefulWidget {
+  final String sessionId;
+  final Map<String, dynamic> initialData;
+
+  const EditSessionScreen({
+    super.key,
+    required this.sessionId,
+    required this.initialData,
+  });
 
   @override
-  State<CreateSessionScreen> createState() => _CreateSessionScreenState();
+  State<EditSessionScreen> createState() => _EditSessionScreenState();
 }
 
-class _CreateSessionScreenState extends State<CreateSessionScreen> {
-  final _titleController = TextEditingController();
-  final _locationController = TextEditingController();
-  final _eventController = TextEditingController();
+class _EditSessionScreenState extends State<EditSessionScreen> {
+  late final TextEditingController _titleController;
+  late final TextEditingController _locationController;
+  late final TextEditingController _eventController;
 
   DateTime? _startTime;
   DateTime? _endTime;
-  String _selectedColor = 'purple';
+  late String _selectedColor;
   bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final d = widget.initialData;
+    _titleController =
+        TextEditingController(text: (d['title'] ?? '').toString());
+    _locationController =
+        TextEditingController(text: (d['location'] ?? '').toString());
+    _eventController =
+        TextEditingController(text: (d['event'] ?? '').toString());
+    _startTime = (d['startTime'] as Timestamp?)?.toDate();
+    _endTime = (d['endTime'] as Timestamp?)?.toDate();
+    _selectedColor = (d['color'] ?? 'purple').toString();
+  }
 
   @override
   void dispose() {
@@ -45,7 +59,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
     final date = await showDatePicker(
       context: context,
       initialDate: initial,
-      firstDate: DateTime.now().subtract(const Duration(days: 1)),
+      firstDate: DateTime.now().subtract(const Duration(days: 30)),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (date == null) return;
@@ -55,7 +69,8 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
       initialTime: TimeOfDay.fromDateTime(initial),
     );
     if (time == null) return;
-    final dt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    final dt =
+        DateTime(date.year, date.month, date.day, time.hour, time.minute);
     setState(() {
       if (isStart) {
         _startTime = dt;
@@ -67,7 +82,6 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
 
   Future<void> _save() async {
     final title = _titleController.text.trim();
-    final location = _locationController.text.trim();
     if (title.isEmpty || _startTime == null || _endTime == null) {
       _snack('Please fill title and times');
       return;
@@ -78,31 +92,22 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
     }
     setState(() => _saving = true);
 
-    final user = FirebaseAuth.instance.currentUser!;
-    final userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .get();
-    final data = userDoc.data() ?? {};
-    final coachName = (data['name'] ?? 'Coach').toString();
-    final sport = (data['sport'] ?? 'Athletics').toString();
-
-    await FirebaseFirestore.instance.collection('training_sessions').add({
+    await FirebaseFirestore.instance
+        .collection('training_sessions')
+        .doc(widget.sessionId)
+        .update({
       'title': title,
-      'coachUid': user.uid,
-      'coachName': coachName,
       'event': _eventController.text.trim(),
-      'sport': sport,                    // ← used for athlete filter
+      'location': _locationController.text.trim(),
       'startTime': Timestamp.fromDate(_startTime!),
       'endTime': Timestamp.fromDate(_endTime!),
-      'location': location,
-      'color': _selectedColor,           // ← new
-      'createdAt': Timestamp.now(),
+      'color': _selectedColor,
+      'updatedAt': Timestamp.now(),
     });
 
     if (!mounted) return;
     setState(() => _saving = false);
-    _snack('Session created');
+    _snack('Session updated');
     Navigator.pop(context, true);
   }
 
@@ -125,7 +130,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create Training Session'),
+        title: const Text('Edit Session'),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
@@ -139,7 +144,6 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
               controller: _titleController,
               decoration: const InputDecoration(
                 labelText: 'Session Title',
-                hintText: 'e.g. Morning Track — Sprints',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -148,7 +152,6 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
               controller: _eventController,
               decoration: const InputDecoration(
                 labelText: 'Event (optional)',
-                hintText: 'e.g. Sprints, Throws, Jumps',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -157,7 +160,6 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
               controller: _locationController,
               decoration: const InputDecoration(
                 labelText: 'Location',
-                hintText: 'e.g. Main Stadium',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -174,8 +176,6 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
               onTap: () => _pickDateTime(isStart: false),
             ),
             const SizedBox(height: 24),
-
-            // Color picker
             const Text(
               'Label color',
               style: TextStyle(
@@ -193,7 +193,6 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                 final label = preset['label'] as String;
                 final color = preset['color'] as Color;
                 final selected = _selectedColor == name;
-
                 return GestureDetector(
                   onTap: () => setState(() => _selectedColor = name),
                   child: Container(
@@ -203,7 +202,8 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                       color: color.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: selected ? color : color.withValues(alpha: 0.3),
+                        color:
+                            selected ? color : color.withValues(alpha: 0.3),
                         width: selected ? 2 : 1,
                       ),
                     ),
@@ -223,8 +223,9 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                           label,
                           style: TextStyle(
                             fontSize: 12,
-                            fontWeight:
-                                selected ? FontWeight.bold : FontWeight.w500,
+                            fontWeight: selected
+                                ? FontWeight.bold
+                                : FontWeight.w500,
                             color: color,
                           ),
                         ),
@@ -238,7 +239,6 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                 );
               }).toList(),
             ),
-
             const SizedBox(height: 28),
             ElevatedButton(
               onPressed: _saving ? null : _save,
@@ -259,7 +259,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                         color: Colors.white,
                       ),
                     )
-                  : const Text('Create Session',
+                  : const Text('Save Changes',
                       style: TextStyle(fontSize: 16)),
             ),
           ],
