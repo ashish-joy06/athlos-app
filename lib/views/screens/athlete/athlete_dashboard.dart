@@ -16,6 +16,7 @@ import 'performance_logs_screen.dart';
 import 'calendar_screen.dart';
 import 'tournaments_screen.dart';
 import 'absence_appeal_screen.dart';
+import 'my_squad_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -460,12 +461,13 @@ class _DashboardScreenState extends State<DashboardScreen>
         label: "My Squad",
         gradient: const [Color(0xFFF59E0B), Color(0xFFD97706)],
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('My Squad screen — coming in Batch 2F'),
-            ),
-          );
-        },
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => const MySquadScreen(),
+    ),
+  );
+},
       );
     },
   ),
