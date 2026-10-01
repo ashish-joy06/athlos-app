@@ -85,16 +85,16 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       if (data != null && data['role'] != null) {
         final role = data['role'] as String;
         switch (role) {
-          case 'Athlete':
-            return const DashboardScreen();
-          case 'Coach':
-            return const CoachDashboardScreen();
-          case 'Organization':
-            return const OrganizationDashboardScreen();
-          // Doctor role removed.
-          default:
-            return const AuthScreen();
-        }
+  case 'Athlete':
+    return const DashboardScreen();
+  case 'Coach':
+  case 'Admin':                              // ← admin uses coach dashboard
+    return const CoachDashboardScreen();
+  case 'Organization':
+    return const OrganizationDashboardScreen();
+  default:
+    return const AuthScreen();
+}
       } else {
         return const AuthScreen();
       }

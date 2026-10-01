@@ -57,14 +57,15 @@ class _AuthScreenState extends State<AuthScreen> {
 
     Widget destinationScreen;
     switch (userRole) {
-      case 'Coach':
-        destinationScreen = const CoachDashboardScreen();
-        break;
-      case 'Athlete':
-      default:
-        destinationScreen = const DashboardScreen();
-        break;
-    }
+  case 'Coach':
+  case 'Admin':                              // ← admin uses coach dashboard
+    destinationScreen = const CoachDashboardScreen();
+    break;
+  case 'Athlete':
+  default:
+    destinationScreen = const DashboardScreen();
+    break;
+}
 
     Navigator.pushReplacement(
       context,
