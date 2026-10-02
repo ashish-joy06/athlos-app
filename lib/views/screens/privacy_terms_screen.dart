@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-// This screen displays the privacy policy and terms of service for the Athletix app with refined UI.
+/// Displays the privacy policy and terms of service for the Athlos app.
 class PrivacyTermsPage extends StatelessWidget {
   const PrivacyTermsPage({super.key});
 
@@ -31,7 +31,10 @@ class PrivacyTermsPage extends StatelessWidget {
             height: 1,
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.blue.withValues(alpha: 0.3), Colors.transparent],
+                colors: [
+                  const Color(0xFF667EEA).withValues(alpha: 0.3),
+                  Colors.transparent
+                ],
               ),
             ),
           ),
@@ -48,19 +51,14 @@ class PrivacyTermsPage extends StatelessWidget {
             ),
             child: Column(
               children: [
-                // Header Card with App Info
                 _buildHeaderCard(),
                 const SizedBox(height: 24),
-
-                // Privacy Policy Section
                 _buildPrivacyPolicyCard(),
                 const SizedBox(height: 24),
-
-                // Terms & Conditions Section
                 _buildTermsConditionsCard(),
+                const SizedBox(height: 24),
+                _buildDataSharingCard(),
                 const SizedBox(height: 32),
-
-                // Footer
                 _buildFooterCard(),
                 const SizedBox(height: 24),
               ],
@@ -77,18 +75,15 @@ class PrivacyTermsPage extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 0),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Colors.blue.shade600,
-            Colors.blue.shade700,
-          ],
+          colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.blue.withValues(alpha: 0.3),
+            color: const Color(0xFF667EEA).withValues(alpha: 0.3),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -110,7 +105,7 @@ class PrivacyTermsPage extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           const Text(
-            'Athletix',
+            'Athlos',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -140,7 +135,9 @@ class PrivacyTermsPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'At Athletix, we respect your privacy. This policy applies to all users, including Athletes, Coaches, Doctors, and Organizations.',
+            'Athlos is an athletics team management platform for athletes, coaches, '
+            'captains, and administrators. This policy describes what information we '
+            'collect, how we use it, and who can access it.',
             style: TextStyle(
               fontSize: 16,
               height: 1.6,
@@ -149,24 +146,29 @@ class PrivacyTermsPage extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           _buildBulletPoint(
-            'We collect personal and professional information to enhance your experience.',
-            Icons.info_outline,
+            'Account information: name, email, date of birth, gender, sport, and event preferences.',
+            Icons.person_outline,
             Colors.blue,
           ),
           _buildBulletPoint(
-            'Your data is shared only with authorized individuals in your role\'s ecosystem.',
-            Icons.group,
+            'Team data: attendance records, absence appeals, injuries, and training sessions you participate in.',
+            Icons.groups_outlined,
+            Colors.purple,
+          ),
+          _buildBulletPoint(
+            'Device data: a push notification token so we can send session reminders and coach announcements.',
+            Icons.notifications_outlined,
             Colors.orange,
           ),
           _buildBulletPoint(
-            'We do not sell your data to third parties.',
+            'We never sell your data to third parties, and we do not use your information for advertising.',
             Icons.block,
             Colors.red,
           ),
           _buildBulletPoint(
-            'You may request deletion of your data at any time.',
+            'You may request deletion of your account and associated data at any time by contacting your administrator.',
             Icons.delete_outline,
-            Colors.purple,
+            Colors.teal,
           ),
         ],
       ),
@@ -182,7 +184,7 @@ class PrivacyTermsPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'By using Athletix, you agree to:',
+            'By using Athlos, you agree to:',
             style: TextStyle(
               fontSize: 16,
               height: 1.6,
@@ -193,27 +195,66 @@ class PrivacyTermsPage extends StatelessWidget {
           const SizedBox(height: 20),
           _buildNumberedPoint(
             1,
-            'Provide accurate registration and profile information.',
+            'Provide accurate registration and profile information, and keep it up to date.',
             Colors.blue,
           ),
           _buildNumberedPoint(
             2,
-            'Use the platform respectfully and responsibly.',
+            'Use the platform respectfully. Attendance, appeals, and injury reports must reflect reality.',
             Colors.green,
           ),
           _buildNumberedPoint(
             3,
-            'Not misuse access to other users\' data or communication tools.',
+            'Not misuse access to other users\' data. Your permissions are defined by your role.',
             Colors.orange,
           ),
           _buildNumberedPoint(
             4,
-            'Accept that Athletix is not liable for any misuse of health or performance data.',
+            'Understand that Athlos does not provide medical advice. Always consult a qualified professional for health decisions.',
             Colors.red,
           ),
           const SizedBox(height: 20),
           _buildInfoBox(
-            'Each role (Athlete, Coach, Doctor, Organization) must adhere to guidelines specific to their access and responsibilities.',
+            'Roles and permissions: Athletes see their own data. Coaches see athletes in their sport. '
+            'Captains see their assigned squad. Administrators see system-wide data for monitoring and support.',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDataSharingCard() {
+    return _buildSectionCard(
+      icon: Icons.share_outlined,
+      iconColor: Colors.blueGrey,
+      title: 'Data Storage & Sharing',
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Athlos uses Google Firebase to store your data securely. Information is transmitted over HTTPS '
+            'and stored in Firebase Authentication, Cloud Firestore, and Cloud Messaging.',
+            style: TextStyle(
+              fontSize: 15,
+              height: 1.6,
+              color: Colors.grey[700],
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildBulletPoint(
+            'Your data is visible only to people whose role grants them access.',
+            Icons.lock_outline,
+            Colors.blue,
+          ),
+          _buildBulletPoint(
+            'Push notifications are routed through Firebase Cloud Messaging.',
+            Icons.cloud_outlined,
+            Colors.purple,
+          ),
+          _buildBulletPoint(
+            'Data is retained until your account is deleted or your administrator removes it.',
+            Icons.schedule_outlined,
+            Colors.green,
           ),
         ],
       ),
@@ -242,7 +283,6 @@ class PrivacyTermsPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section Header
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),
@@ -261,25 +301,22 @@ class PrivacyTermsPage extends StatelessWidget {
                     color: iconColor.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(
-                    icon,
-                    size: 24,
-                    color: iconColor,
-                  ),
+                  child: Icon(icon, size: 24, color: iconColor),
                 ),
                 const SizedBox(width: 16),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[800],
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[800],
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          // Section Content
           Padding(
             padding: const EdgeInsets.all(24),
             child: content,
@@ -302,11 +339,7 @@ class PrivacyTermsPage extends StatelessWidget {
               color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Icon(
-              icon,
-              size: 16,
-              color: color,
-            ),
+            child: Icon(icon, size: 16, color: color),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -372,20 +405,13 @@ class PrivacyTermsPage extends StatelessWidget {
         color: Colors.amber.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border(
-          left: BorderSide(
-            color: Colors.amber,
-            width: 4,
-          ),
+          left: BorderSide(color: Colors.amber, width: 4),
         ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.info,
-            color: Colors.amber[700],
-            size: 20,
-          ),
+          Icon(Icons.info, color: Colors.amber[700], size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -424,31 +450,12 @@ class PrivacyTermsPage extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'January 2025',
+            'October 2026',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
               color: Colors.grey[800],
             ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.email_outlined,
-                size: 16,
-                color: Colors.grey[600],
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Questions? Contact support@athletix.com',
-                style: TextStyle(
-                  fontSize: 10,
-                  color: Colors.grey[600],
-                ),
-              ),
-            ],
           ),
         ],
       ),
