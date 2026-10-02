@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../../../services/notification_dispatcher.dart';
 
 /// Session color presets. `name` is stored in Firestore; `color` is used
 /// for the UI dot and the calendar highlight.
@@ -87,18 +88,27 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
     final coachName = (data['name'] ?? 'Coach').toString();
     final sport = (data['sport'] ?? 'Athletics').toString();
 
+    final docRef =
     await FirebaseFirestore.instance.collection('training_sessions').add({
-      'title': title,
-      'coachUid': user.uid,
-      'coachName': coachName,
-      'event': _eventController.text.trim(),
-      'sport': sport,                    // ← used for athlete filter
-      'startTime': Timestamp.fromDate(_startTime!),
-      'endTime': Timestamp.fromDate(_endTime!),
-      'location': location,
-      'color': _selectedColor,           // ← new
-      'createdAt': Timestamp.now(),
-    });
+  'title': title,
+  'coachUid': user.uid,
+  'coachName': coachName,
+  'event': _eventController.text.trim(),
+  'sport': sport,
+  'startTime': Timestamp.fromDate(_startTime!),
+  'endTime': Timestamp.fromDate(_endTime!),
+  'location': location,
+  'color': _selectedColor,
+  'createdAt': Timestamp.now(),
+});
+
+// Fire notifications to athletes in this sport.
+await NotificationDispatcher.onSessionCreated(
+  sessionTitle: title,
+  sport: sport,
+  startTime: _startTime!,
+  sessionId: docRef.id,
+);
 
     if (!mounted) return;
     setState(() => _saving = false);

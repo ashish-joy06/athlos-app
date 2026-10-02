@@ -1,12 +1,14 @@
 import 'package:athletix/components/achievements_box.dart';
 import 'package:athletix/components/alertDialog_signOut_confitmation.dart';
 import 'package:athletix/components/announcements_marquee.dart';
+import 'package:athletix/components/fcm_listener.dart';
 import 'package:athletix/views/screens/athlete/tournaments_screen.dart';
 import 'package:athletix/views/screens/profile_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
+import 'package:athletix/components/notification_bell.dart';
 
 import 'coach_appeals_screen.dart';
 import 'create_session_screen.dart';
@@ -55,24 +57,26 @@ class _CoachDashboardScreenState extends State<CoachDashboardScreen>
       const TournamentsScreen(),
       const ProfileScreen(),
     ];
-    return Scaffold(
-      body: screens[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
-        onTap: (i) => setState(() => _currentIndex = i),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today), label: 'Time Table'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.location_on), label: 'Tournaments'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-        ],
-      ),
-    );
+    return FcmListener(
+  child: Scaffold(
+    body: screens[_currentIndex],
+    bottomNavigationBar: BottomNavigationBar(
+      currentIndex: _currentIndex,
+      selectedItemColor: Colors.blue,
+      unselectedItemColor: Colors.grey,
+      type: BottomNavigationBarType.fixed,
+      onTap: (i) => setState(() => _currentIndex = i),
+      items: const [
+        BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today), label: 'Time Table'),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.location_on), label: 'Tournaments'),
+        BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+      ],
+    ),
+  ),
+);
   }
 
   Widget _buildHomeTab() {
@@ -144,22 +148,23 @@ class _CoachDashboardScreenState extends State<CoachDashboardScreen>
         centerTitle: false,
         titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
       ),
-      actions: [
-        Container(
-          margin: const EdgeInsets.only(right: 16, top: 8),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: IconButton(
-            onPressed: () async {
-              await signoutConfirmation(context);
-            },
-            icon: const Icon(Icons.logout_rounded, color: Colors.white),
-            tooltip: 'Sign Out',
-          ),
-        ),
-      ],
+     actions: [
+  const NotificationBell(),
+  Container(
+    margin: const EdgeInsets.only(right: 16, top: 8),
+    decoration: BoxDecoration(
+      color: Colors.white.withValues(alpha: 0.2),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: IconButton(
+      onPressed: () async {
+        await signoutConfirmation(context);
+      },
+      icon: const Icon(Icons.logout_rounded, color: Colors.white),
+      tooltip: 'Sign Out',
+    ),
+  ),
+],
     );
   }
 

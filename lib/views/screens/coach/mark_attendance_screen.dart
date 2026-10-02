@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../../../services/notification_dispatcher.dart';
 
 /// Coach selects a training session, then marks each athlete assigned
 /// to their sport. Saves to the `attendance` collection with composite ID
@@ -88,6 +89,13 @@ Future<void> _loadPreselectedSession() async {
     }
 
     await batch.commit();
+
+await NotificationDispatcher.onAttendanceMarked(
+  marksByUid: marks,
+  sessionTitle: sessionTitle,
+  sessionId: _selectedSessionId!,
+);
+
     if (!mounted) return;
     setState(() => _saving = false);
     ScaffoldMessenger.of(context).showSnackBar(

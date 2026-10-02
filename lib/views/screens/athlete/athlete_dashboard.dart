@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
+import 'package:athletix/components/notification_bell.dart';
 
 import 'package:athletix/components/bottom_nav_bar.dart';
 import 'package:athletix/components/fcm_listener.dart';
@@ -137,21 +138,22 @@ class _DashboardScreenState extends State<DashboardScreen>
         titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
       ),
       actions: [
-        Container(
-          margin: const EdgeInsets.only(right: 16, top: 8),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: IconButton(
-            onPressed: () async {
-              await signoutConfirmation(context);
-            },
-            icon: const Icon(Icons.logout_rounded, color: Colors.white),
-            tooltip: 'Sign Out',
-          ),
-        ),
-      ],
+  const NotificationBell(),
+  Container(
+    margin: const EdgeInsets.only(right: 16, top: 8),
+    decoration: BoxDecoration(
+      color: Colors.white.withValues(alpha: 0.2),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: IconButton(
+      onPressed: () async {
+        await signoutConfirmation(context);
+      },
+      icon: const Icon(Icons.logout_rounded, color: Colors.white),
+      tooltip: 'Sign Out',
+    ),
+  ),
+],
     );
   }
 

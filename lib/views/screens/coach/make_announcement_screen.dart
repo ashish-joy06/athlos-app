@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../../../services/notification_dispatcher.dart';
 
 /// Screen used by coaches and admins to post an announcement.
 /// - Admin announcements have `sport: null` → visible to everyone
@@ -46,15 +47,23 @@ class _MakeAnnouncementScreenState extends State<MakeAnnouncementScreen> {
     final name = (data['name'] ?? 'User').toString();
     final sport = role == 'Admin' ? null : (data['sport'] ?? 'Athletics').toString();
 
+    final docRef =
     await FirebaseFirestore.instance.collection('announcements').add({
-      'title': title,
-      'message': message,
-      'authorUid': user.uid,
-      'authorName': name,
-      'authorRole': role,
-      'sport': sport,
-      'createdAt': Timestamp.now(),
-    });
+  'title': title,
+  'message': message,
+  'authorUid': user.uid,
+  'authorName': name,
+  'authorRole': role,
+  'sport': sport,
+  'createdAt': Timestamp.now(),
+});
+
+// Notify the audience.
+await NotificationDispatcher.onAnnouncementPosted(
+  message: message,
+  sport: sport,
+  announcementId: docRef.id,
+);
 
     if (!mounted) return;
     setState(() => _saving = false);
