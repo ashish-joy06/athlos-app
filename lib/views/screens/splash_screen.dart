@@ -89,7 +89,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     return const DashboardScreen();
   case 'Coach':
   case 'Admin':                              // ← admin uses coach dashboard
-    return const CoachDashboardScreen();
+    return CoachDashboardScreen();
   case 'Organization':
     return const OrganizationDashboardScreen();
   default:

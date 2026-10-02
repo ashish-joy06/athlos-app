@@ -59,7 +59,7 @@ class _AuthScreenState extends State<AuthScreen> {
     switch (userRole) {
   case 'Coach':
   case 'Admin':                              // ← admin uses coach dashboard
-    destinationScreen = const CoachDashboardScreen();
+    destinationScreen = CoachDashboardScreen();
     break;
   case 'Athlete':
   default:

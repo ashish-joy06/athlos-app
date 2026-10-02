@@ -3,13 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:marquee/marquee.dart';
 
-/// A scrolling marquee that shows the latest announcement visible to the
-/// current user.
-///
-/// Rules:
-/// - Admin announcements (`sport == null`) are visible to everyone.
-/// - Coach announcements (`sport == "Athletics"`) are visible only to users
-///   whose `sport` matches.
+import '../views/screens/announcements_inbox_screen.dart';
+
+/// Scrolling marquee that shows the latest announcement visible to the user.
+/// Tapping the card (or the history icon on the right) opens the full inbox.
 class AnnouncementsMarquee extends StatefulWidget {
   const AnnouncementsMarquee({super.key});
 
@@ -39,64 +36,92 @@ class _AnnouncementsMarqueeState extends State<AnnouncementsMarquee> {
     });
   }
 
+  void _openInbox() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const AnnouncementsInboxScreen(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFFFE9B0), Color(0xFFFFD166)],
-        ),
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+    return InkWell(
+      onTap: _openInbox,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFFFE9B0), Color(0xFFFFD166)],
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.campaign_rounded, color: Color(0xFF8A5A00)),
-          const SizedBox(width: 10),
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('announcements')
-                  .orderBy('createdAt', descending: true)
-                  .limit(20)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                final text = _pickText(snapshot);
-                return SizedBox(
-                  height: 20,
-                  child: Marquee(
-                    text: text,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF4A3000),
-                    ),
-                    scrollAxis: Axis.horizontal,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    blankSpace: 60.0,
-                    velocity: 40.0,
-                    pauseAfterRound: const Duration(seconds: 1),
-                    startPadding: 10.0,
-                    accelerationDuration: const Duration(seconds: 1),
-                    accelerationCurve: Curves.linear,
-                    decelerationDuration: const Duration(milliseconds: 500),
-                    decelerationCurve: Curves.easeOut,
-                  ),
-                );
-              },
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
-          ),
-        ],
+          ],
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.campaign_rounded, color: Color(0xFF8A5A00)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('announcements')
+                    .orderBy('createdAt', descending: true)
+                    .limit(20)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  final text = _pickText(snapshot);
+                  return SizedBox(
+                    height: 20,
+                    child: Marquee(
+                      text: text,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF4A3000),
+                      ),
+                      scrollAxis: Axis.horizontal,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      blankSpace: 60.0,
+                      velocity: 40.0,
+                      pauseAfterRound: const Duration(seconds: 1),
+                      startPadding: 10.0,
+                      accelerationDuration: const Duration(seconds: 1),
+                      accelerationCurve: Curves.linear,
+                      decelerationDuration: const Duration(milliseconds: 500),
+                      decelerationCurve: Curves.easeOut,
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+            // History icon — tapping the card also opens the inbox,
+            // but this gives an explicit affordance.
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.history_rounded,
+                size: 16,
+                color: Color(0xFF8A5A00),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -105,7 +130,6 @@ class _AnnouncementsMarqueeState extends State<AnnouncementsMarquee> {
     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
       return 'No announcements yet — stay tuned!';
     }
-    // Walk from newest to oldest; return the first one visible to me.
     for (final doc in snapshot.data!.docs) {
       final data = doc.data() as Map<String, dynamic>;
       final annSport = data['sport'];

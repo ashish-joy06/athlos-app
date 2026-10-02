@@ -11,14 +11,16 @@ import 'package:lottie/lottie.dart';
 import 'package:athletix/components/notification_bell.dart';
 
 import 'coach_appeals_screen.dart';
+import 'coach_athletes_screen.dart'; 
+import 'coach_calendar_screen.dart';  
 import 'create_session_screen.dart';
 import 'make_announcement_screen.dart';
+import 'mark_attendance_screen.dart';  
 import 'team_injuries_screen.dart';
-import 'coach_calendar_screen.dart';
-import 'coach_athletes_screen.dart';
+
 
 class CoachDashboardScreen extends StatefulWidget {
-  const CoachDashboardScreen({super.key});
+  CoachDashboardScreen({super.key});
 
   @override
   State<CoachDashboardScreen> createState() => _CoachDashboardScreenState();
@@ -53,7 +55,7 @@ class _CoachDashboardScreenState extends State<CoachDashboardScreen>
   Widget build(BuildContext context) {
     final screens = [
       _buildHomeTab(),
-      const CoachCalendarScreen(),
+      CoachCalendarScreen(),
       const TournamentsScreen(),
       const ProfileScreen(),
     ];
@@ -420,20 +422,20 @@ class _CoachDashboardScreenState extends State<CoachDashboardScreen>
             ),
 
             // 2. Attendance
-           _buildActionCard(
-  icon: Icons.people_alt_rounded,
-  label: 'Athletes',
-  gradient: const [Color(0xFF14B8A6), Color(0xFF0D9488)],
+           
+_buildActionCard(
+  icon: Icons.how_to_reg_rounded,
+  label: 'Attendance',
+  gradient: const [Color(0xFF10B981), Color(0xFF059669)],
   onTap: () {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => const CoachAthletesScreen(),
+        builder: (_) => const MarkAttendanceScreen(),
       ),
     );
   },
 ),
-
             // 3. Injuries (with badge, expand-fit)
             StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -518,17 +520,18 @@ class _CoachDashboardScreenState extends State<CoachDashboardScreen>
 
             // 6. Athletes
             _buildActionCard(
-              icon: Icons.people_alt_rounded,
-              label: 'Athletes',
-              gradient: const [Color(0xFF14B8A6), Color(0xFF0D9488)],
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Athletes list — coming soon'),
-                  ),
-                );
-              },
-            ),
+  icon: Icons.people_alt_rounded,
+  label: 'Athletes',
+  gradient: const [Color(0xFF14B8A6), Color(0xFF0D9488)],
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const CoachAthletesScreen(),
+      ),
+    );
+  },
+),
           ],
         ),
       ],
