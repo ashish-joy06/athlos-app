@@ -1,12 +1,10 @@
-// Add necessary imports for animation and soft UI styling
-import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dart:math' as math;
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:latlong2/latlong.dart';
 
 class AddTournamentScreen extends StatefulWidget {
   const AddTournamentScreen({super.key});
@@ -35,14 +33,6 @@ class _AddTournamentScreenState extends State<AddTournamentScreen>
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
 
-  final List<String> _newsImages = [
-    'https://via.placeholder.com/400x150.png?text=Sports+News+1',
-    'https://via.placeholder.com/400x150.png?text=Sports+News+2',
-    'https://via.placeholder.com/400x150.png?text=Sports+News+3',
-  ];
-
-  int _currentBanner = 0;
-
   @override
   void initState() {
     super.initState();
@@ -65,6 +55,7 @@ class _AddTournamentScreenState extends State<AddTournamentScreen>
     final uid = FirebaseAuth.instance.currentUser!.uid;
     final doc =
         await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    if (!mounted) return;
     setState(() {
       _sport = doc['sport'];
     });
@@ -90,47 +81,38 @@ class _AddTournamentScreenState extends State<AddTournamentScreen>
   }
 
   Future<void> _pickLocation() async {
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Location permission denied.')),
-        );
-        return;
-      }
-    }
+    // Default map center — India. User taps to place a marker.
+    const initial = LatLng(20.5937, 78.9629);
 
-    if (permission == LocationPermission.deniedForever) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Location permissions are permanently denied.'),
-        ),
-      );
-      return;
-    }
-
-    Position pos = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
-    LatLng initial = LatLng(pos.latitude, pos.longitude);
-
-    LatLng? result = await Navigator.push(
+    final LatLng? result = await Navigator.push(
       context,
       PageRouteBuilder(
         pageBuilder: (_, __, ___) => MapScreen(initialLocation: initial),
-        transitionsBuilder:
-            (_, anim, __, child) => FadeTransition(opacity: anim, child: child),
+        transitionsBuilder: (_, anim, __, child) =>
+            FadeTransition(opacity: anim, child: child),
       ),
     );
 
     if (result != null) {
-      List<Placemark> placemarks = await placemarkFromCoordinates(
-        result.latitude,
-        result.longitude,
-      );
-      String readableAddress =
-          "${placemarks.first.street ?? ''}, ${placemarks.first.locality ?? ''}";
+      String readableAddress = '';
+      try {
+        final placemarks = await placemarkFromCoordinates(
+          result.latitude,
+          result.longitude,
+        );
+        if (placemarks.isNotEmpty) {
+          final p = placemarks.first;
+          readableAddress =
+              '${p.street ?? ''}, ${p.locality ?? ''}'.trim();
+          if (readableAddress.isEmpty) {
+            readableAddress = '${result.latitude}, ${result.longitude}';
+          }
+        }
+      } catch (_) {
+        readableAddress = '${result.latitude}, ${result.longitude}';
+      }
+
+      if (!mounted) return;
       setState(() {
         _pickedLocation = result;
         _address = readableAddress;
@@ -166,19 +148,19 @@ class _AddTournamentScreenState extends State<AddTournamentScreen>
 
     await FirebaseFirestore.instance.collection('tournaments').add(tournament);
 
+    if (!mounted) return;
     showDialog(
       context: context,
-      builder:
-          (_) => AlertDialog(
-            title: const Text('✅ Success'),
-            content: const Text('Tournament added successfully!'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('OK'),
-              ),
-            ],
+      builder: (_) => AlertDialog(
+        title: const Text('Success'),
+        content: const Text('Tournament added successfully!'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
           ),
+        ],
+      ),
     );
 
     setState(() {
@@ -193,26 +175,26 @@ class _AddTournamentScreenState extends State<AddTournamentScreen>
   }
 
   InputDecoration _softInputDecoration(String label) => InputDecoration(
-    labelText: label,
-    labelStyle: const TextStyle(
-      fontWeight: FontWeight.bold,
-      fontSize: 20,
-      color: Color(0xFF22223B),
-    ),
-    filled: true,
-    fillColor: Colors.white,
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(18),
-      borderSide: BorderSide.none,
-    ),
-    contentPadding: const EdgeInsets.symmetric(vertical: 22, horizontal: 24),
-  );
+        labelText: label,
+        labelStyle: const TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 20,
+          color: Color(0xFF22223B),
+        ),
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(vertical: 22, horizontal: 24),
+      );
 
   @override
   Widget build(BuildContext context) {
     final bannerHeight = MediaQuery.of(context).size.height * 0.36;
 
-    // Make status bar transparent so image goes behind it
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -228,7 +210,6 @@ class _AddTournamentScreenState extends State<AddTournamentScreen>
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            // Curved, full-width, animated banner extended to top
             SizedBox(
               width: double.infinity,
               height: bannerHeight + MediaQuery.of(context).padding.top,
@@ -243,7 +224,7 @@ class _AddTournamentScreenState extends State<AddTournamentScreen>
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            Colors.black.withOpacity(0.45),
+                            Colors.black.withValues(alpha: 0.45),
                             Colors.transparent,
                           ],
                           begin: Alignment.bottomCenter,
@@ -261,7 +242,7 @@ class _AddTournamentScreenState extends State<AddTournamentScreen>
                         32,
                         36,
                       ),
-                      child: Text(
+                      child: const Text(
                         "Create Your\nTournament",
                         style: TextStyle(
                           fontSize: 40,
@@ -272,8 +253,8 @@ class _AddTournamentScreenState extends State<AddTournamentScreen>
                           shadows: [
                             Shadow(
                               blurRadius: 24,
-                              color: Colors.black.withOpacity(0.7),
-                              offset: const Offset(0, 4),
+                              color: Colors.black54,
+                              offset: Offset(0, 4),
                             ),
                           ],
                         ),
@@ -291,24 +272,20 @@ class _AddTournamentScreenState extends State<AddTournamentScreen>
                   children: [
                     TextFormField(
                       decoration: _softInputDecoration('Tournament Name'),
-                      validator:
-                          (val) =>
-                              val == null || val.isEmpty ? 'Required' : null,
+                      validator: (val) =>
+                          val == null || val.isEmpty ? 'Required' : null,
                       onSaved: (val) => _name = val,
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField(
                       value: _level,
                       decoration: _softInputDecoration('Level'),
-                      items:
-                          _levels
-                              .map(
-                                (lvl) => DropdownMenuItem(
-                                  value: lvl,
-                                  child: Text(lvl),
-                                ),
-                              )
-                              .toList(),
+                      items: _levels
+                          .map((lvl) => DropdownMenuItem(
+                                value: lvl,
+                                child: Text(lvl),
+                              ))
+                          .toList(),
                       onChanged: (val) => setState(() => _level = val!),
                     ),
                     const SizedBox(height: 16),
@@ -384,26 +361,7 @@ class _AddTournamentScreenState extends State<AddTournamentScreen>
   }
 }
 
-class _CurvedBannerClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.lineTo(0, size.height - 40);
-    path.quadraticBezierTo(
-      size.width / 2,
-      size.height + 40,
-      size.width,
-      size.height - 40,
-    );
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}
-
+/// Location picker using flutter_map (OpenStreetMap — free, no API key).
 class MapScreen extends StatefulWidget {
   final LatLng initialLocation;
   const MapScreen({super.key, required this.initialLocation});
@@ -429,23 +387,71 @@ class _MapScreenState extends State<MapScreen> {
           ),
         ],
       ),
-      body: GoogleMap(
-        initialCameraPosition: CameraPosition(
-          target: widget.initialLocation,
-          zoom: 17,
-        ),
-        myLocationEnabled: true,
-        myLocationButtonEnabled: true,
-        onTap: (latLng) => setState(() => _picked = latLng),
-        markers:
-            _picked == null
-                ? {}
-                : {
-                  Marker(
-                    markerId: const MarkerId('picked'),
-                    position: _picked!,
-                  ),
-                },
+      body: Stack(
+        children: [
+          FlutterMap(
+            options: MapOptions(
+              initialCenter: widget.initialLocation,
+              initialZoom: 12,
+              onTap: (tapPosition, latLng) {
+                setState(() => _picked = latLng);
+              },
+            ),
+            children: [
+              TileLayer(
+                urlTemplate:
+                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.athlos.app',
+              ),
+              if (_picked != null)
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: _picked!,
+                      width: 44,
+                      height: 44,
+                      child: const Icon(
+                        Icons.location_on,
+                        color: Colors.red,
+                        size: 40,
+                      ),
+                    ),
+                  ],
+                ),
+              const RichAttributionWidget(
+                attributions: [
+                  TextSourceAttribution('OpenStreetMap contributors'),
+                ],
+              ),
+            ],
+          ),
+          // Hint banner at bottom
+          if (_picked == null)
+            Positioned(
+              bottom: 24,
+              left: 24,
+              right: 24,
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Text(
+                  'Tap anywhere on the map to place a pin.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -502,21 +508,22 @@ class _PurpleSaveButtonState extends State<_PurpleSaveButton>
             child: child,
           ),
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 24), // Reduced size
+            padding:
+                const EdgeInsets.symmetric(vertical: 10, horizontal: 24),
             decoration: BoxDecoration(
-              color: const Color(0xFF1976D2), // Blue shade
+              color: const Color(0xFF1976D2),
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF1976D2).withOpacity(0.13),
+                  color: const Color(0xFF1976D2).withValues(alpha: 0.13),
                   blurRadius: 8,
                   offset: const Offset(0, 3),
                 ),
               ],
             ),
-            child: Row(
+            child: const Row(
               mainAxisSize: MainAxisSize.min,
-              children: const [
+              children: [
                 Icon(Icons.save, color: Colors.white, size: 20),
                 SizedBox(width: 8),
                 Text(

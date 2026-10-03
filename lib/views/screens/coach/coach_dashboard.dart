@@ -2,25 +2,26 @@ import 'package:athletix/components/achievements_box.dart';
 import 'package:athletix/components/alertDialog_signOut_confitmation.dart';
 import 'package:athletix/components/announcements_marquee.dart';
 import 'package:athletix/components/fcm_listener.dart';
+import 'package:athletix/components/notification_bell.dart';
 import 'package:athletix/views/screens/athlete/tournaments_screen.dart';
 import 'package:athletix/views/screens/profile_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'package:athletix/components/notification_bell.dart';
 
 import 'coach_appeals_screen.dart';
-import 'coach_athletes_screen.dart'; 
-import 'coach_calendar_screen.dart';  
+import 'coach_athletes_screen.dart';
+import 'coach_calendar_screen.dart';
+import 'coach_performance_screen.dart';
 import 'create_session_screen.dart';
 import 'make_announcement_screen.dart';
-import 'mark_attendance_screen.dart';  
+import 'mark_attendance_screen.dart';
+import 'reassign_athletes_screen.dart';
 import 'team_injuries_screen.dart';
 
-
 class CoachDashboardScreen extends StatefulWidget {
-  CoachDashboardScreen({super.key});
+  const CoachDashboardScreen({super.key});
 
   @override
   State<CoachDashboardScreen> createState() => _CoachDashboardScreenState();
@@ -60,25 +61,25 @@ class _CoachDashboardScreenState extends State<CoachDashboardScreen>
       const ProfileScreen(),
     ];
     return FcmListener(
-  child: Scaffold(
-    body: screens[_currentIndex],
-    bottomNavigationBar: BottomNavigationBar(
-      currentIndex: _currentIndex,
-      selectedItemColor: Colors.blue,
-      unselectedItemColor: Colors.grey,
-      type: BottomNavigationBarType.fixed,
-      onTap: (i) => setState(() => _currentIndex = i),
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-        BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today), label: 'Time Table'),
-        BottomNavigationBarItem(
-            icon: Icon(Icons.location_on), label: 'Tournaments'),
-        BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-      ],
-    ),
-  ),
-);
+      child: Scaffold(
+        body: screens[_currentIndex],
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          selectedItemColor: Colors.blue,
+          unselectedItemColor: Colors.grey,
+          type: BottomNavigationBarType.fixed,
+          onTap: (i) => setState(() => _currentIndex = i),
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.calendar_today), label: 'Time Table'),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.location_on), label: 'Tournaments'),
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildHomeTab() {
@@ -150,23 +151,23 @@ class _CoachDashboardScreenState extends State<CoachDashboardScreen>
         centerTitle: false,
         titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
       ),
-     actions: [
-  const NotificationBell(),
-  Container(
-    margin: const EdgeInsets.only(right: 16, top: 8),
-    decoration: BoxDecoration(
-      color: Colors.white.withValues(alpha: 0.2),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: IconButton(
-      onPressed: () async {
-        await signoutConfirmation(context);
-      },
-      icon: const Icon(Icons.logout_rounded, color: Colors.white),
-      tooltip: 'Sign Out',
-    ),
-  ),
-],
+      actions: [
+        const NotificationBell(),
+        Container(
+          margin: const EdgeInsets.only(right: 16, top: 8),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.2),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: IconButton(
+            onPressed: () async {
+              await signoutConfirmation(context);
+            },
+            icon: const Icon(Icons.logout_rounded, color: Colors.white),
+            tooltip: 'Sign Out',
+          ),
+        ),
+      ],
     );
   }
 
@@ -286,6 +287,7 @@ class _CoachDashboardScreenState extends State<CoachDashboardScreen>
             ),
             const SizedBox(height: 16),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Container(
                   width: 70,
@@ -306,6 +308,7 @@ class _CoachDashboardScreenState extends State<CoachDashboardScreen>
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         greeting,
@@ -323,16 +326,18 @@ class _CoachDashboardScreenState extends State<CoachDashboardScreen>
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF1A202C),
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 8),
-                      Row(
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
                         children: [
                           _buildInfoChip(Icons.sports_rounded, sport),
-                          if (joined.isNotEmpty) ...[
-                            const SizedBox(width: 12),
+                          if (joined.isNotEmpty)
                             _buildInfoChip(
                                 Icons.calendar_today_rounded, joined),
-                          ],
                         ],
                       ),
                     ],
@@ -405,7 +410,6 @@ class _CoachDashboardScreenState extends State<CoachDashboardScreen>
           mainAxisSpacing: 10,
           childAspectRatio: 1.0,
           children: [
-            // 1. Session
             _buildActionCard(
               icon: Icons.add_circle_outline_rounded,
               label: 'Session',
@@ -414,29 +418,23 @@ class _CoachDashboardScreenState extends State<CoachDashboardScreen>
                 final ok = await Navigator.push<bool>(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const CreateSessionScreen(),
-                  ),
+                      builder: (_) => const CreateSessionScreen()),
                 );
                 if (ok == true) setState(() {});
               },
             ),
-
-            // 2. Attendance
-           
-_buildActionCard(
-  icon: Icons.how_to_reg_rounded,
-  label: 'Attendance',
-  gradient: const [Color(0xFF10B981), Color(0xFF059669)],
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const MarkAttendanceScreen(),
-      ),
-    );
-  },
-),
-            // 3. Injuries (with badge, expand-fit)
+            _buildActionCard(
+              icon: Icons.how_to_reg_rounded,
+              label: 'Attendance',
+              gradient: const [Color(0xFF10B981), Color(0xFF059669)],
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const MarkAttendanceScreen()),
+                );
+              },
+            ),
             StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('injuries')
@@ -444,66 +442,36 @@ _buildActionCard(
                   .snapshots(),
               builder: (context, snap) {
                 final count = snap.data?.docs.length ?? 0;
-                return Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    _buildActionCard(
-                      icon: Icons.healing_rounded,
-                      label: 'Injuries',
-                      gradient: const [Color(0xFFEF4444), Color(0xFFDC2626)],
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const TeamInjuriesScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    if (count > 0)
-                      Positioned(
-                        top: 6,
-                        right: 6,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 7, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                                color: const Color(0xFFEF4444), width: 1.5),
-                          ),
-                          child: Text(
-                            '$count',
-                            style: const TextStyle(
-                              color: Color(0xFFEF4444),
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
+                return _buildActionCard(
+                  icon: Icons.healing_rounded,
+                  label: 'Injuries',
+                  gradient: const [
+                    Color(0xFFEF4444),
+                    Color(0xFFDC2626)
                   ],
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const TeamInjuriesScreen()),
+                    );
+                  },
+                  badgeCount: count,
                 );
               },
             ),
-
-            // 4. Appeals (NEW)
             _buildActionCard(
-  icon: Icons.inbox_rounded,
-  label: 'Appeals',
-  gradient: const [Color(0xFFF59E0B), Color(0xFFD97706)],
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const CoachAppealsScreen(),
-      ),
-    );
-  },
-),
-
-            // 5. Announce
+              icon: Icons.inbox_rounded,
+              label: 'Appeals',
+              gradient: const [Color(0xFFF59E0B), Color(0xFFD97706)],
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const CoachAppealsScreen()),
+                );
+              },
+            ),
             _buildActionCard(
               icon: Icons.campaign_rounded,
               label: 'Announce',
@@ -512,26 +480,47 @@ _buildActionCard(
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const MakeAnnouncementScreen(),
+                      builder: (_) => const MakeAnnouncementScreen()),
+                );
+              },
+            ),
+            _buildActionCard(
+              icon: Icons.people_alt_rounded,
+              label: 'Athletes',
+              gradient: const [Color(0xFF14B8A6), Color(0xFF0D9488)],
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const CoachAthletesScreen()),
+                );
+              },
+            ),
+            _buildActionCard(
+              icon: Icons.swap_horiz_rounded,
+              label: 'Reassign',
+              gradient: const [Color(0xFF6366F1), Color(0xFF4F46E5)],
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const ReassignAthletesScreen()),
+                );
+              },
+            ),
+            _buildActionCard(
+              icon: Icons.insights_rounded,
+              label: 'Performance',
+              gradient: const [Color(0xFFEC4899), Color(0xFFDB2777)],
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const CoachPerformanceScreen(),
                   ),
                 );
               },
             ),
-
-            // 6. Athletes
-            _buildActionCard(
-  icon: Icons.people_alt_rounded,
-  label: 'Athletes',
-  gradient: const [Color(0xFF14B8A6), Color(0xFF0D9488)],
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const CoachAthletesScreen(),
-      ),
-    );
-  },
-),
           ],
         ),
       ],
@@ -543,6 +532,7 @@ _buildActionCard(
     required String label,
     required List<Color> gradient,
     required VoidCallback onTap,
+    int? badgeCount,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -567,31 +557,58 @@ _buildActionCard(
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
             onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.22),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(icon, size: 22, color: Colors.white),
+            child: Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.22),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(icon, size: 22, color: Colors.white),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        label,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    label,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 11,
-                      color: Colors.white,
+                ),
+                if (badgeCount != null && badgeCount > 0)
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: const Color(0xFFEF4444), width: 1.5),
+                      ),
+                      child: Text(
+                        '$badgeCount',
+                        style: const TextStyle(
+                          color: Color(0xFFEF4444),
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
-                ],
-              ),
+              ],
             ),
           ),
         ),

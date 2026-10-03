@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 class TournamentsScreen extends StatefulWidget {
   const TournamentsScreen({super.key});
@@ -17,45 +17,22 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
   @override
   void initState() {
     super.initState();
-    _determinePosition(); // 🔐 Request location permission
     _tournaments = _fetchTournaments();
-  }
-
-  Future<void> _determinePosition() async {
-    LocationPermission permission;
-
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      return Future.error('Location services are disabled.');
-    }
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        return Future.error('Location permission denied.');
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      return Future.error(
-          'Location permissions are permanently denied, we cannot request.');
-    }
   }
 
   Future<List<Tournament>> _fetchTournaments() async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
 
-    // Get user document
     final userDoc = await FirebaseFirestore.instance
         .collection('users')
         .doc(uid)
         .get();
 
-    final userSport = userDoc['sport'] ?? '';
-    final now = Timestamp.now(); // current timestamp
+    final userSport = (userDoc.data()?['sport'] ?? '').toString();
+    if (userSport.isEmpty) return [];
 
-    // Fetch ONLY upcoming tournaments for the user's sport
+    final now = Timestamp.now();
+
     final snapshot = await FirebaseFirestore.instance
         .collection('tournaments')
         .where('sport', isEqualTo: userSport)
@@ -78,150 +55,172 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
           }
 
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  'Could not load tournaments.\nPlease try again later.',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.grey),
+                ),
+              ),
+            );
           }
 
           final tournaments = snapshot.data ?? [];
 
-          final CameraPosition initialCameraPosition = tournaments.isNotEmpty
-              ? CameraPosition(
-            target: LatLng(tournaments.first.lat, tournaments.first.lng),
-            zoom: 10,
-          )
-              : const CameraPosition(
-            target: LatLng(20.5937, 78.9629), // Default location (e.g., India)
-            zoom: 4,
+          if (tournaments.isEmpty) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Text(
+                  'No tournaments found.\nCheck back later.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+            );
+          }
+
+          // Center the map on the first tournament
+          final firstLatLng = LatLng(
+            tournaments.first.lat,
+            tournaments.first.lng,
           );
 
           return Stack(
             children: [
-              GoogleMap(
-                initialCameraPosition: initialCameraPosition,
-                myLocationEnabled: true,
-                myLocationButtonEnabled: true,
-                markers: tournaments
-                    .map((tournament) => Marker(
-                  markerId: MarkerId(tournament.id),
-                  position: LatLng(tournament.lat, tournament.lng),
-                  onTap: () {
-                    _showTournamentDialog(context, tournament);
-                  },
-                ))
-                    .toSet(),
-              ),
-
-              if (tournaments.isEmpty)
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Container(
-                    width: double.infinity,
-                    color: Colors.red.withValues(alpha: 0.8),
-                    padding: const EdgeInsets.all(12),
-                    child: const Text(
-                      'No tournaments found.',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
+              FlutterMap(
+                options: MapOptions(
+                  initialCenter: firstLatLng,
+                  initialZoom: 10,
                 ),
+                children: [
+                  TileLayer(
+                    urlTemplate:
+                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'com.athlos.app',
+                  ),
+                  MarkerLayer(
+                    markers: tournaments.map((t) {
+                      return Marker(
+                        point: LatLng(t.lat, t.lng),
+                        width: 40,
+                        height: 40,
+                        child: GestureDetector(
+                          onTap: () => _showTournamentDialog(context, t),
+                          child: const Icon(
+                            Icons.location_on,
+                            color: Colors.red,
+                            size: 36,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const RichAttributionWidget(
+                    attributions: [
+                      TextSourceAttribution('OpenStreetMap contributors'),
+                    ],
+                  ),
+                ],
+              ),
             ],
           );
         },
       ),
     );
   }
+
   void _showTournamentDialog(BuildContext context, Tournament t) {
-  showDialog(
-    context: context,
-    builder: (_) => AlertDialog(
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      title: Text(
-        t.name,
-        style: const TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: Colors.black87,
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
         ),
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 8),
-          _buildInfoRow("Level", t.level),
-          const SizedBox(height: 6),
-          _buildInfoRow("Sport", t.sport),
-          const SizedBox(height: 6),
-          _buildInfoRow("Date", t.dateString),
-          const SizedBox(height: 6),
-          _buildInfoRow("Time", t.time),
-          const SizedBox(height: 12),
-          const Text(
-            "Address:",
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-              color: Colors.black87,
+        title: Text(
+          t.name,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 8),
+            _buildInfoRow("Level", t.level),
+            const SizedBox(height: 6),
+            _buildInfoRow("Sport", t.sport),
+            const SizedBox(height: 6),
+            _buildInfoRow("Date", t.dateString),
+            const SizedBox(height: 6),
+            _buildInfoRow("Time", t.time),
+            const SizedBox(height: 12),
+            const Text(
+              "Address:",
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: Colors.black87,
+              ),
+            ),
+            Text(
+              t.address,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.black54,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          Center(
+            child: TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(
+                'Close',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue,
+                ),
+              ),
             ),
           ),
-          Text(
-            t.address,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String title, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "$title: ",
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+            color: Colors.black87,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
             style: const TextStyle(
               fontSize: 14,
               color: Colors.black54,
             ),
           ),
-        ],
-      ),
-      actions: [
-        Center(
-          child: TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text(
-              'Close',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue,
-              ),
-            ),
-          ),
         ),
       ],
-    ),
-  );
-}
-
-Widget _buildInfoRow(String title, String value) {
-  return Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        "$title: ",
-        style: const TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 14,
-          color: Colors.black87,
-        ),
-      ),
-      Expanded(
-        child: Text(
-          value,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Colors.black54,
-          ),
-        ),
-      ),
-    ],
-  );
-}
+    );
+  }
 }
 
 class Tournament {

@@ -116,7 +116,11 @@ class AuthService {
 
       debugPrint('FCM Token saved to Firestore');
     } catch (e) {
-      debugPrint('Error saving FCM token: $e');
-    }
+  if (e.toString().contains('permission-blocked')) {
+    // Expected on web when permission is denied — ignore.
+    return;
+  }
+  debugPrint('Error saving FCM token: $e');
+}
   }
 }
