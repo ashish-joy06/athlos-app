@@ -21,46 +21,69 @@ class BottomNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final List<BottomNavigationBarItem> items;
 
-    if (role == 'Organization') {
-      items = const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home),
-          label: 'Home',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.people),
-          label: 'Players',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.event),
-          label: 'Tournaments',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person),
-          label: 'Profile',
-        ),
-      ];
-    } else {
-      // fallback
-      items = const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home),
-          label: 'Home',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.calendar_today),
-          label: 'Time Table',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.location_on),
-          label: 'Tournaments',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person),
-          label: 'Profile',
-        ),
-      ];
-    }
+   if (role == 'Organization') {
+  items = const [
+    BottomNavigationBarItem(
+      icon: Icon(Icons.home),
+      label: 'Home',
+    ),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.people),
+      label: 'Players',
+    ),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.event),
+      label: 'Tournaments',
+    ),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.person),
+      label: 'Profile',
+    ),
+  ];
+} else if (role == 'Admin') {
+  items = const [
+    BottomNavigationBarItem(
+      icon: Icon(Icons.home),
+      label: 'Home',
+    ),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.event_available),
+      label: 'Sessions',
+    ),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.emoji_events),
+      label: 'Tournament',
+    ),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.people_alt),
+      label: 'Users',
+    ),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.person),
+      label: 'Profile',
+    ),
+  ];
+} else {
+  // Athlete / Coach fallback
+  items = const [
+    BottomNavigationBarItem(
+      icon: Icon(Icons.home),
+      label: 'Home',
+    ),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.calendar_today),
+      label: 'Time Table',
+    ),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.location_on),
+      label: 'Tournaments',
+    ),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.person),
+      label: 'Profile',
+    ),
+  ];
+}
 
     return BottomNavigationBar(
       currentIndex: currentIndex,

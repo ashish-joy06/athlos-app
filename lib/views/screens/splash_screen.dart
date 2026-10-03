@@ -7,6 +7,7 @@ import 'organization/organization_dashboard.dart';
 import 'auth_screen.dart';
 import 'athlete/athlete_dashboard.dart';
 import 'coach/coach_dashboard.dart';
+import 'admin/admin_dashboard_screen.dart';
 
 /// Splash screen that shows an animation and navigates based on user authentication state.
 class SplashScreen extends StatefulWidget {
@@ -85,16 +86,17 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       if (data != null && data['role'] != null) {
         final role = data['role'] as String;
         switch (role) {
-  case 'Athlete':
-    return const DashboardScreen();
-  case 'Coach':
-  case 'Admin':                              // ← admin uses coach dashboard
-    return CoachDashboardScreen();
-  case 'Organization':
-    return const OrganizationDashboardScreen();
-  default:
-    return const AuthScreen();
-}
+          case 'Athlete':
+            return const DashboardScreen();
+          case 'Coach':
+            return CoachDashboardScreen();
+          case 'Admin':
+            return const AdminDashboardScreen();
+          case 'Organization':
+            return const OrganizationDashboardScreen();
+          default:
+            return const AuthScreen();
+        }
       } else {
         return const AuthScreen();
       }

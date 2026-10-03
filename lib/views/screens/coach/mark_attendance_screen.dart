@@ -29,24 +29,45 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
   ];
 
   @override
-void initState() {
-  super.initState();
-  _selectedSessionId = widget.sessionId;
-  if (_selectedSessionId != null) {
-    _loadPreselectedSession();
+  void initState() {
+    super.initState();
+    _selectedSessionId = widget.sessionId;
+    if (_selectedSessionId != null) {
+      _loadPreselectedSession();
+    }
   }
-}
 
-Future<void> _loadPreselectedSession() async {
-  final doc = await FirebaseFirestore.instance
-      .collection('training_sessions')
-      .doc(_selectedSessionId)
-      .get();
-  if (!mounted) return;
-  if (doc.exists) {
-    setState(() => _selectedSession = doc.data());
+  Future<void> _loadPreselectedSession() async {
+    final doc = await FirebaseFirestore.instance
+        .collection('training_sessions')
+        .doc(_selectedSessionId)
+        .get();
+    if (!mounted) return;
+    if (doc.exists) {
+      setState(() => _selectedSession = doc.data());
+    }
   }
-}
+
+  /// Computes attendance points based on status + active injury.
+  ///   4 → Present, no injury
+  ///   3 → Present, active injury
+  ///   2 → Other Camp
+  ///   1 → Injury (excused absence)
+  ///   0 → Absent / Uninformed
+  int _pointsFor({required String status, required bool injuryAtTime}) {
+    switch (status) {
+      case 'Present':
+        return injuryAtTime ? 3 : 4;
+      case 'Other Camp':
+        return 2;
+      case 'Injury':
+        return 1;
+      case 'Absent':
+      case 'Uninformed':
+      default:
+        return 0;
+    }
+  }
 
   Future<void> _saveAll(Map<String, String> marks) async {
     if (_selectedSessionId == null || _selectedSession == null) return;
@@ -67,6 +88,7 @@ Future<void> _loadPreselectedSession() async {
           .collection('attendance')
           .doc('${_selectedSessionId}_$athleteUid');
 
+      // Check for existing appeal
       final appealQuery = await FirebaseFirestore.instance
           .collection('absence_appeals')
           .where('athleteUid', isEqualTo: athleteUid)
@@ -74,6 +96,17 @@ Future<void> _loadPreselectedSession() async {
           .limit(1)
           .get();
       final hasAppeal = appealQuery.docs.isNotEmpty;
+
+      // Check for an active injury at this moment
+      final injuryQuery = await FirebaseFirestore.instance
+          .collection('injuries')
+          .where('uid', isEqualTo: athleteUid)
+          .where('status', isEqualTo: 'Active')
+          .limit(1)
+          .get();
+      final injuryAtTime = injuryQuery.docs.isNotEmpty;
+
+      final points = _pointsFor(status: status, injuryAtTime: injuryAtTime);
 
       batch.set(docRef, {
         'sessionId': _selectedSessionId,
@@ -83,6 +116,8 @@ Future<void> _loadPreselectedSession() async {
         'location': location,
         'status': status,
         'hasAppeal': hasAppeal,
+        'injuryAtTime': injuryAtTime,
+        'points': points,
         'markedBy': user.uid,
         'markedAt': Timestamp.now(),
       }, SetOptions(merge: true));
@@ -90,11 +125,11 @@ Future<void> _loadPreselectedSession() async {
 
     await batch.commit();
 
-await NotificationDispatcher.onAttendanceMarked(
-  marksByUid: marks,
-  sessionTitle: sessionTitle,
-  sessionId: _selectedSessionId!,
-);
+    await NotificationDispatcher.onAttendanceMarked(
+      marksByUid: marks,
+      sessionTitle: sessionTitle,
+      sessionId: _selectedSessionId!,
+    );
 
     if (!mounted) return;
     setState(() => _saving = false);

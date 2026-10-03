@@ -7,6 +7,7 @@ import 'package:athletix/views/widgets/email_verification_pending.dart';
 import 'package:athletix/views/widgets/responsive_helper.dart';
 import 'athlete/athlete_dashboard.dart';
 import 'coach/coach_dashboard.dart';
+import 'admin/admin_dashboard_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -58,8 +59,10 @@ class _AuthScreenState extends State<AuthScreen> {
     Widget destinationScreen;
     switch (userRole) {
   case 'Coach':
-  case 'Admin':                              // ← admin uses coach dashboard
     destinationScreen = CoachDashboardScreen();
+    break;
+  case 'Admin':
+    destinationScreen = const AdminDashboardScreen();
     break;
   case 'Athlete':
   default:

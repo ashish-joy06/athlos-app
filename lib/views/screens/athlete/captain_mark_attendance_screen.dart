@@ -31,6 +31,27 @@ class _CaptainMarkAttendanceScreenState
   Map<String, dynamic>? _selectedSession;
   bool _saving = false;
 
+  /// Computes attendance points based on status + active injury.
+  ///   4 → Present, no injury
+  ///   3 → Present, active injury
+  ///   2 → Other Camp
+  ///   1 → Injury (excused absence)
+  ///   0 → Absent / Uninformed
+  int _pointsFor({required String status, required bool injuryAtTime}) {
+    switch (status) {
+      case 'Present':
+        return injuryAtTime ? 3 : 4;
+      case 'Other Camp':
+        return 2;
+      case 'Injury':
+        return 1;
+      case 'Absent':
+      case 'Uninformed':
+      default:
+        return 0;
+    }
+  }
+
   Future<void> _saveAll(Map<String, String> marks) async {
     if (_selectedSession == null) return;
     setState(() => _saving = true);
@@ -58,6 +79,17 @@ class _CaptainMarkAttendanceScreenState
           .limit(1)
           .get();
 
+      // Check for active injury
+      final injury = await FirebaseFirestore.instance
+          .collection('injuries')
+          .where('uid', isEqualTo: athleteUid)
+          .where('status', isEqualTo: 'Active')
+          .limit(1)
+          .get();
+      final injuryAtTime = injury.docs.isNotEmpty;
+
+      final points = _pointsFor(status: status, injuryAtTime: injuryAtTime);
+
       batch.set(docRef, {
         'sessionId': session['id'],
         'athleteUid': athleteUid,
@@ -66,6 +98,8 @@ class _CaptainMarkAttendanceScreenState
         'location': location,
         'status': status,
         'hasAppeal': appeal.docs.isNotEmpty,
+        'injuryAtTime': injuryAtTime,
+        'points': points,
         'markedBy': user.uid,
         'markedByRole': 'Captain',
         'markedAt': Timestamp.now(),
